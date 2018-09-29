@@ -7,7 +7,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.rustedbrain.diploma.travelvisualizer.dummy.DummyContent.DummyItem;
-import com.rustedbrain.diploma.travelvisualizer.fragment.TripsListFragment.OnListFragmentInteractionListener;
+import com.rustedbrain.diploma.travelvisualizer.fragment.home.TripsListFragment.OnListFragmentInteractionListener;
 
 import java.util.List;
 

@@ -37,6 +37,7 @@ import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
@@ -45,7 +46,6 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 
 import static android.Manifest.permission.READ_CONTACTS;
 
@@ -70,8 +70,9 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     private View mProgressView;
     private View mLoginFormView;
 
-    private int secretKey0 = KeyEvent.
-    private Queue<Integer> secretQueue = new LinkedList<>();
+    private int[] secretKeyCombination = {19, 19, 21};
+    private LinkedList<Integer> secretQueue = new LinkedList<>();
+    private Button signInButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,9 +83,32 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         mEmailView.setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View view, int i, KeyEvent keyEvent) {
-                secretQueue.add(keyEvent.getKeyCode());
+                Log.i(LoginActivity.class.getName(), "Login key event key code: " + String.valueOf(keyEvent.getKeyCode()));
+                if (secretQueue.size() < secretKeyCombination.length) {
+                    secretQueue.addLast(keyEvent.getKeyCode());
+                } else {
+                    secretQueue.removeFirst();
+                    secretQueue.addLast(keyEvent.getKeyCode());
+                }
+                boolean successCombination = true;
+                for (int idx = 0; idx < secretKeyCombination.length; idx++) {
+                    try {
+                        int inputtedKey = secretQueue.get(idx);
+                        if (inputtedKey != secretKeyCombination[idx]) {
+                            successCombination = false;
+                            break;
+                        }
+                    } catch (IndexOutOfBoundsException ex) {
+                        successCombination = false;
+                    }
+                }
 
-                Log.d("tag", keyEvent.getKeyCode() + " event " + KeyEvent.ACTION_MULTIPLE);
+                if (successCombination) {
+                    mEmailView.setText("admin@gmail.com");
+                    mPasswordView.setText("admin");
+                    Toast.makeText(getApplicationContext(), "Secret combination inputted successfully!", Toast.LENGTH_SHORT).show();
+                    Log.i(LoginActivity.class.getName(), "Secret combination inputted successfully: " + String.valueOf(keyEvent.getKeyCode()));
+                }
                 return false;
             }
         });
@@ -102,7 +126,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             }
         });
 
-        Button signInButton = findViewById(R.id.email_login_button);
+        this.signInButton = findViewById(R.id.email_login_button);
         signInButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -132,6 +156,16 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         if (registrationSuccess) {
             mEmailView.setText(initBundle.getString(RegistrationActivity.REG_MAIL_VALUE));
             Toast.makeText(this, "Successfully registered", Toast.LENGTH_SHORT).show();
+        } else {
+            String isDebugStrArg = getIntent().getExtras().getString("debug");
+            if (isDebugStrArg != null) {
+                boolean isDebug = Boolean.parseBoolean(isDebugStrArg);
+                if (isDebug) {
+                    mEmailView.setText("admin@gmail.com");
+                    mPasswordView.setText("admin");
+                    signInButton.callOnClick();
+                }
+            }
         }
     }
 
@@ -348,13 +382,12 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
     private class UserLoginTask extends AsyncTask<Void, Void, UserDTO> {
 
-
-        private final String mEmail;
-        private final String mPassword;
+        private final String email;
+        private final String password;
 
         UserLoginTask(String email, String password) {
-            mEmail = email;
-            mPassword = password;
+            this.email = email;
+            this.password = password;
         }
 
         @Override
@@ -362,19 +395,19 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             try {
                 RestTemplate restTemplate = new RestTemplate();
                 restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
-                AuthenticationRequest request = new AuthenticationRequest(mEmail, mPassword);
+                AuthenticationRequest request = new AuthenticationRequest(email, password);
 
                 return restTemplate.postForObject(new URI(HttpUtils.getAbsoluteUrl(HttpUtils.AUTHENTICATE_URL)),
                         request, UserDTO.class);
             } catch (HttpClientErrorException e) {
-                Log.e("MainActivity", e.getMessage(), e);
+                Log.e(LoginActivity.class.getName(), e.getMessage(), e);
                 try {
                     return new ObjectMapper().readValue(e.getResponseBodyAsString(), UserDTO.class);
                 } catch (IOException e1) {
                     return null;
                 }
-            } catch (URISyntaxException e) {
-                Log.e("MainActivity", e.getMessage(), e);
+            } catch (ResourceAccessException | URISyntaxException ex) {
+                Log.d(LoginActivity.class.getName(), ex.getMessage());
                 return null;
             }
         }
@@ -385,8 +418,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             showProgress(false);
 
             if (responseEntity == null) {
-                Toast toast = Toast.makeText(getApplicationContext(), getString(R.string.error_invalid_url), Toast.LENGTH_LONG);
-                toast.show();
+                Toast.makeText(getApplicationContext(), getString(R.string.error_invalid_url), Toast.LENGTH_LONG).show();
             } else if (HttpStatus.OK.equals(responseEntity.getStatus())) {
                 startActivity(new Intent(LoginActivity.this.getApplicationContext(), MainActivity.class));
             } else if (HttpStatus.NOT_FOUND.equals(responseEntity.getStatus())) {

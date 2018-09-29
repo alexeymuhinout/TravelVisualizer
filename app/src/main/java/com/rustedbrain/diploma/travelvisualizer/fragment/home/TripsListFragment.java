@@ -1,4 +1,4 @@
-package com.rustedbrain.diploma.travelvisualizer.fragment;
+package com.rustedbrain.diploma.travelvisualizer.fragment.home;
 
 import android.content.Context;
 import android.os.Bundle;

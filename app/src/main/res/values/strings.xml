@@ -34,4 +34,23 @@
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="button_add_place">Add place</string>
+    <string name="button_mark_me">I\'m in right place</string>
+    <string name="button_place_creation_open_description">Next</string>
+    <string name="button_place_creation_cancel">Cancel</string>
+    <string name="place_description_edit_text_hint">Place description</string>
+    <string name="button_description_previous_step"><![CDATA[< Back]]></string>
+    <string name="button_description_cancel">Cancel</string>
+    <string name="button_description_next_step"><![CDATA[Next >]]></string>
+
+    <string name="title_activity_full_screen_image">FullScreenImageActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+
+    <string name="image_share">Share Image</string>
+    <string name="button_create_photos">Take photo</string>
+    <string name="fragment_place_photos_next_button"><![CDATA[Next >]]></string>
+    <string name="fragment_place_photos_back_button"><![CDATA[< Back]]></string>
+    <string name="fragment_place_photos_cancel_button">Cancel</string>
+    <string name="button_load_photos">Load</string>
+    <string name="popup_photos_menu_delete_action">Delete</string>
 </resources>

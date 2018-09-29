@@ -2,7 +2,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".fragment.TripsFragment">
+    tools:context=".fragment.TripsMapFragment">
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -17,6 +17,12 @@
             android:id="@+id/mapView"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
+
+        <Button
+            android:id="@+id/button_place_creation_open_description"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Button" />
 
     </RelativeLayout>
 

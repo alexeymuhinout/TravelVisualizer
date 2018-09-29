@@ -18,22 +18,13 @@ import android.view.ViewGroup;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
-import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.rustedbrain.diploma.travelvisualizer.R;
 
-/**
- * A fragment with a Google +1 button.
- * Activities that contain this fragment must implement the
- * {@link TripsFragment.OnFragmentInteractionListener} interface
- * to handle interaction events.
- * Use the {@link TripsFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
-public class TripsFragment extends Fragment {
+
+public class TripsMapFragment extends Fragment {
 
     public static final String ADD_PLACE_ARG = "add_place";
 
@@ -48,28 +39,20 @@ public class TripsFragment extends Fragment {
     private LatLng myLocation;
     private Marker selectedPlace;
 
-    public TripsFragment() {
+    public TripsMapFragment() {
         // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param addPlace Parameter 1.
-     * @return A new instance of fragment TripsFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static TripsFragment newInstance(boolean addPlace) {
-        TripsFragment fragment = new TripsFragment();
+    public static TripsMapFragment newInstance(boolean addPlace) {
+        TripsMapFragment fragment = new TripsMapFragment();
         Bundle args = new Bundle();
         args.putBoolean(ADD_PLACE_ARG, addPlace);
         fragment.setArguments(args);
         return fragment;
     }
 
-    public static TripsFragment newInstance() {
-        return new TripsFragment();
+    public static TripsMapFragment newInstance() {
+        return new TripsMapFragment();
     }
 
     @Override
@@ -84,18 +67,12 @@ public class TripsFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_trips, container, false);
+        View rootView = inflater.inflate(R.layout.fragment_trips_map, container, false);
 
         mMapView = rootView.findViewById(R.id.mapView);
         mMapView.onCreate(savedInstanceState);
 
         mMapView.onResume(); // needed to get the map to display immediately
-
-        try {
-            MapsInitializer.initialize(getActivity().getApplicationContext());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
         mMapView.getMapAsync(new OnMapReadyCallback() {
             @Override
@@ -110,25 +87,10 @@ public class TripsFragment extends Fragment {
 
                 LocationManager locationManager = (LocationManager)
                         getContext().getSystemService(Context.LOCATION_SERVICE);
-                Criteria criteria = new Criteria();
                 Location location = locationManager.getLastKnownLocation(locationManager
-                        .getBestProvider(criteria, false));
+                        .getBestProvider(new Criteria(), false));
                 myLocation = new LatLng(location.getLatitude(), location.getLongitude());
                 googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation, 12));
-
-                if (addPlace) {
-                    googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-                        @Override
-                        public void onMapClick(LatLng latLng) {
-                            if (selectedPlace != null) {
-                                selectedPlace.remove();
-                            }
-                            selectedPlace = googleMap.addMarker(new MarkerOptions().position(latLng).title("Marker Title").snippet("Marker Description"));
-                        }
-                    });
-                } else {
-
-                }
             }
         });
         return rootView;
