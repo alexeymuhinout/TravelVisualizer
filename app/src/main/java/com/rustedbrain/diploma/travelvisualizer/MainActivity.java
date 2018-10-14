@@ -1,5 +1,6 @@
 package com.rustedbrain.diploma.travelvisualizer;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
@@ -17,8 +18,14 @@ import com.rustedbrain.diploma.travelvisualizer.fragment.home.TripsListFragment;
 import com.rustedbrain.diploma.travelvisualizer.fragment.place.PlaceCoordinatesFragment;
 import com.rustedbrain.diploma.travelvisualizer.fragment.place.PlaceDescriptionFragment;
 import com.rustedbrain.diploma.travelvisualizer.fragment.place.PlacePhotosFragment;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceMapDTO;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceType;
 
-public class MainActivity extends AppCompatActivity implements PlacePhotosFragment.OnFragmentInteractionListener, TripsListFragment.OnListFragmentInteractionListener, HomeFragment.OnHomeFragmentButtonClickListener, PlaceCoordinatesFragment.OnFragmentInteractionListener, ProfileFragment.OnFragmentInteractionListener, PlaceDescriptionFragment.OnFragmentInteractionListener {
+public class MainActivity extends AppCompatActivity implements PlacePhotosFragment.OnFragmentInteractionListener, TripsListFragment.OnListFragmentInteractionListener, HomeFragment.OnHomeFragmentButtonClickListener, PlaceCoordinatesFragment.OnFragmentInteractionListener, ProfileFragment.OnFragmentInteractionListener, PlaceDescriptionFragment.OnFragmentInteractionListener, TripsMapFragment.OnFragmentInteractionListener {
+
+    public static final String AUTH_TOKEN_HEADER_NAME = "X-AUTH-TOKEN";
+    private UserDTO userDTO;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,17 +57,19 @@ public class MainActivity extends AppCompatActivity implements PlacePhotosFragme
         transaction.commit();
         //Used to select an item programmatically
         //bottomNavigationView.getMenu().getItem(2).setChecked(true);
+        initIntentVariables();
+    }
+
+    private void initIntentVariables() {
+        Intent intent = getIntent();
+        Bundle bundle = intent.getExtras();
+        if (bundle != null) {
+            userDTO = (UserDTO) bundle.getSerializable(LoginActivity.USER_DTO_PARAM);
+        }
     }
 
     private void openHomeFragment() {
         Fragment selectedFragment = HomeFragment.newInstance();
-        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-        transaction.replace(R.id.frame_layout, selectedFragment);
-        transaction.commit();
-    }
-
-    private void openTripMapFragment() {
-        Fragment selectedFragment = TripsMapFragment.newInstance();
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.frame_layout, selectedFragment);
         transaction.commit();
@@ -84,13 +93,13 @@ public class MainActivity extends AppCompatActivity implements PlacePhotosFragme
             }
             break;
             case ARCHIVED_ROUTES: {
-                Fragment selectedFragment = PlaceCoordinatesFragment.newInstance();
+                Fragment selectedFragment = PlaceCoordinatesFragment.newInstance(userDTO);
                 FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
                 transaction.replace(R.id.frame_layout, selectedFragment);
                 transaction.commit();
             }
             case ADD_PLACE: {
-                Fragment selectedFragment = PlaceCoordinatesFragment.newInstance();
+                Fragment selectedFragment = PlaceCoordinatesFragment.newInstance(userDTO);
                 FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
                 transaction.replace(R.id.frame_layout, selectedFragment);
                 transaction.commit();
@@ -115,29 +124,29 @@ public class MainActivity extends AppCompatActivity implements PlacePhotosFragme
     }
 
     private void openDescriptionFragment(double placeLatitude, double placeLongitude) {
-        Fragment selectedFragment = PlaceDescriptionFragment.newInstance(placeLatitude, placeLongitude);
+        Fragment selectedFragment = PlaceDescriptionFragment.newInstance(userDTO, placeLatitude, placeLongitude);
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.frame_layout, selectedFragment);
         transaction.commit();
     }
 
-    private void openDescriptionFragment(String placeName, String placeDescription, float placeRating, double placeLatitude, double placeLongitude) {
-        Fragment selectedFragment = PlaceDescriptionFragment.newInstance(placeName, placeDescription, placeRating, placeLatitude, placeLongitude);
+    private void openDescriptionFragment(PlaceType placeType, String placeName, String placeDescription, double placeLatitude, double placeLongitude) {
+        Fragment selectedFragment = PlaceDescriptionFragment.newInstance(userDTO, placeType, placeName, placeDescription, placeLatitude, placeLongitude);
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.frame_layout, selectedFragment);
         transaction.commit();
     }
 
-    private void openPhotosFragment(String name, String description, float rating, double latitude, double longitude) {
-        Fragment selectedFragment = PlacePhotosFragment.newInstance(name, description, rating, latitude, longitude);
+    private void openPhotosFragment(PlaceType placeType, String name, String description, double latitude, double longitude) {
+        Fragment selectedFragment = PlacePhotosFragment.newInstance(userDTO, placeType, name, description, latitude, longitude);
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.frame_layout, selectedFragment);
         transaction.commit();
     }
 
     @Override
-    public void onFragmentDescriptionButtonNextClicked(String name, String description, float rating, double latitude, double longitude) {
-        openPhotosFragment(name, description, rating, latitude, longitude);
+    public void onFragmentDescriptionButtonNextClicked(PlaceType placeType, String name, String description, double latitude, double longitude) {
+        openPhotosFragment(placeType, name, description, latitude, longitude);
     }
 
     @Override
@@ -147,7 +156,7 @@ public class MainActivity extends AppCompatActivity implements PlacePhotosFragme
 
     @Override
     public void onFragmentDescriptionButtonBackClicked(double lat, double lng) {
-        Fragment selectedFragment = PlaceCoordinatesFragment.newInstance(lat, lng);
+        Fragment selectedFragment = PlaceCoordinatesFragment.newInstance(userDTO, lat, lng);
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.frame_layout, selectedFragment);
         transaction.commit();
@@ -159,12 +168,31 @@ public class MainActivity extends AppCompatActivity implements PlacePhotosFragme
     }
 
     @Override
-    public void onPlacePhotosFragmentBackClicked(String placeName, String placeDescription, float placeRating, double placeLatitude, double placeLongitude) {
-        openDescriptionFragment(placeName, placeDescription, placeRating, placeLatitude, placeLongitude);
+    public void onPlacePhotosFragmentBackClicked(PlaceType placeType, String placeName, String placeDescription, double placeLatitude, double placeLongitude) {
+        openDescriptionFragment(placeType, placeName, placeDescription, placeLatitude, placeLongitude);
     }
 
     @Override
-    public void onPlacePhotosFragmentNextClicked(double latitude, double longitude) {
+    public void onPlacePhotosFragmentNextClicked(PlaceMapDTO placeMapDTO) {
+        openTripMapFragment(placeMapDTO);
+    }
+
+    private void openTripMapFragment() {
+        Fragment selectedFragment = TripsMapFragment.newInstance(userDTO);
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.replace(R.id.frame_layout, selectedFragment);
+        transaction.commit();
+    }
+
+    private void openTripMapFragment(PlaceMapDTO placeMapDTO) {
+        Fragment selectedFragment = TripsMapFragment.newInstance(userDTO, placeMapDTO);
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.replace(R.id.frame_layout, selectedFragment);
+        transaction.commit();
+    }
+
+    @Override
+    public void onPlaceSelected(PlaceMapDTO placeMapDTO) {
 
     }
 }

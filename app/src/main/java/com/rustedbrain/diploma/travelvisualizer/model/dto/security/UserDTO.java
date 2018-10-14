@@ -1,31 +1,31 @@
 package com.rustedbrain.diploma.travelvisualizer.model.dto.security;
 
+import com.rustedbrain.diploma.travelvisualizer.model.dto.HttpDTO;
+
 import org.springframework.http.HttpStatus;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 
-public class UserDTO implements Serializable {
+public class UserDTO extends HttpDTO {
 
     private String username;
     private List<String> roles;
     private String token;
-    private HttpStatus status;
 
-    public UserDTO(String username, List<String> roles, String token, HttpStatus status) {
+    public UserDTO(HttpStatus status, String username, List<String> roles, String token) {
+        super.setStatus(status);
         this.roles = roles;
         this.token = token;
         this.username = username;
-        this.status = status;
     }
 
     public UserDTO(HttpStatus status) {
-        this("", Collections.<String>emptyList(), "", status);
+        this(status, "", Collections.<String>emptyList(), "");
     }
 
     public UserDTO() {
-        this("", Collections.<String>emptyList(), "", HttpStatus.NOT_FOUND);
+        this(HttpStatus.NOT_FOUND, "", Collections.<String>emptyList(), "");
     }
 
     public List<String> getRoles() {
@@ -40,16 +40,12 @@ public class UserDTO implements Serializable {
         return this.username;
     }
 
-    public HttpStatus getStatus() {
-        return this.status;
-    }
-
     @Override
     public String toString() {
         return "UserDTO{" +
                 "username='" + username + '\'' +
                 ", roles=" + roles +
-                ", status=" + status +
-                '}';
+                ", token='" + token + '\'' +
+                "} " + super.toString();
     }
 }

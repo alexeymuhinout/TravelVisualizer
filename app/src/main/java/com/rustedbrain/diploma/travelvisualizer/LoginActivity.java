@@ -30,10 +30,10 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.AuthenticationRequest;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
 
+import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.HttpClientErrorException;
@@ -53,6 +53,8 @@ import static android.Manifest.permission.READ_CONTACTS;
  * A login screen that offers login via email/password.
  */
 public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<Cursor> {
+
+    public static final String USER_DTO_PARAM = "user";
 
     /**
      * Id to identity READ_CONTACTS permission request.
@@ -420,7 +422,11 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             if (responseEntity == null) {
                 Toast.makeText(getApplicationContext(), getString(R.string.error_invalid_url), Toast.LENGTH_LONG).show();
             } else if (HttpStatus.OK.equals(responseEntity.getStatus())) {
-                startActivity(new Intent(LoginActivity.this.getApplicationContext(), MainActivity.class));
+                Intent intent = new Intent(LoginActivity.this.getApplicationContext(), MainActivity.class);
+                Bundle bundle = new Bundle();
+                bundle.putSerializable(USER_DTO_PARAM, responseEntity);
+                intent.putExtras(bundle);
+                startActivity(intent);
             } else if (HttpStatus.NOT_FOUND.equals(responseEntity.getStatus())) {
                 startActivity(new Intent(LoginActivity.this.getApplicationContext(), RegistrationActivity.class));
             } else {

@@ -8,6 +8,7 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
@@ -23,7 +24,9 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.rustedbrain.diploma.travelvisualizer.LoginActivity;
 import com.rustedbrain.diploma.travelvisualizer.R;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
 
 public class PlaceCoordinatesFragment extends Fragment {
 
@@ -36,6 +39,7 @@ public class PlaceCoordinatesFragment extends Fragment {
     private LatLng myLocation;
     private Marker selectedPlace;
 
+    private UserDTO userDTO;
     private double latitude;
     private double longitude;
 
@@ -43,17 +47,22 @@ public class PlaceCoordinatesFragment extends Fragment {
         // Required empty public constructor
     }
 
-    public static PlaceCoordinatesFragment newInstance(double lat, double lng) {
+    public static PlaceCoordinatesFragment newInstance(UserDTO user, double lat, double lng) {
         PlaceCoordinatesFragment fragment = new PlaceCoordinatesFragment();
         Bundle args = new Bundle();
+        args.putSerializable(LoginActivity.USER_DTO_PARAM, user);
         args.putDouble(PlaceDescriptionFragment.LAT_ARG_PARAM, lat);
         args.putDouble(PlaceDescriptionFragment.LNG_ARG_PARAM, lng);
         fragment.setArguments(args);
         return fragment;
     }
 
-    public static PlaceCoordinatesFragment newInstance() {
-        return new PlaceCoordinatesFragment();
+    public static PlaceCoordinatesFragment newInstance(UserDTO user) {
+        PlaceCoordinatesFragment fragment = new PlaceCoordinatesFragment();
+        Bundle args = new Bundle();
+        args.putSerializable(LoginActivity.USER_DTO_PARAM, user);
+        fragment.setArguments(args);
+        return fragment;
     }
 
     @Override
@@ -61,6 +70,7 @@ public class PlaceCoordinatesFragment extends Fragment {
         super.onCreate(savedInstanceState);
 
         if (getArguments() != null) {
+            userDTO = (UserDTO) getArguments().getSerializable(LoginActivity.USER_DTO_PARAM);
             latitude = getArguments().getDouble(PlaceDescriptionFragment.LAT_ARG_PARAM);
             longitude = getArguments().getDouble(PlaceDescriptionFragment.LNG_ARG_PARAM);
         }
@@ -116,7 +126,11 @@ public class PlaceCoordinatesFragment extends Fragment {
                             getContext().getSystemService(Context.LOCATION_SERVICE);
                     Location location = locationManager.getLastKnownLocation(locationManager
                             .getBestProvider(new Criteria(), false));
-                    myLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                    if (location == null) {
+                        myLocation = new LatLng(31.28487, 51.50551);
+                    } else {
+                        myLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                    }
                 }
                 googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation, 12));
 
@@ -185,7 +199,7 @@ public class PlaceCoordinatesFragment extends Fragment {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
         switch (requestCode) {
             case 1: {
                 // If request is cancelled, the result arrays are empty.

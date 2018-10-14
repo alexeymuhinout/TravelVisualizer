@@ -1,73 +1,121 @@
 package com.rustedbrain.diploma.travelvisualizer.fragment;
 
 import android.Manifest;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.annotation.TargetApi;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
-import android.support.v7.app.AlertDialog;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
+import android.widget.Toast;
 
+import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.ui.PlaceAutocompleteFragment;
+import com.google.android.gms.location.places.ui.PlaceSelectionListener;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.rustedbrain.diploma.travelvisualizer.LoginActivity;
 import com.rustedbrain.diploma.travelvisualizer.R;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceMapDTO;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceMapDTOList;
+import com.rustedbrain.diploma.travelvisualizer.task.PlacesGetTask;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
-public class TripsMapFragment extends Fragment {
+public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGetTaskListener {
 
-    public static final String ADD_PLACE_ARG = "add_place";
+    public static final String PLACE_DTO_PARAM = "place";
 
     MapView mMapView;
-    private GoogleMap mMap;
-    // TODO: Rename and change types of parameters
-    private boolean addPlace;
 
     private OnFragmentInteractionListener mListener;
     private GoogleMap googleMap;
 
     private LatLng myLocation;
-    private Marker selectedPlace;
+    private UserDTO userDTO;
+    private PlaceMapDTO focusPlaceMapDTO;
+    private ProgressBar progressView;
+    private PlacesGetTask placesGetTask;
+    private Map<PlaceMapDTO, Marker> placeMapDTOMarkers = new HashMap<>();
+    private PlaceAutocompleteFragment autocompleteFragment;
 
     public TripsMapFragment() {
         // Required empty public constructor
     }
 
-    public static TripsMapFragment newInstance(boolean addPlace) {
+    public static TripsMapFragment newInstance(UserDTO userDTO) {
         TripsMapFragment fragment = new TripsMapFragment();
         Bundle args = new Bundle();
-        args.putBoolean(ADD_PLACE_ARG, addPlace);
+        args.putSerializable(LoginActivity.USER_DTO_PARAM, userDTO);
         fragment.setArguments(args);
         return fragment;
     }
 
-    public static TripsMapFragment newInstance() {
-        return new TripsMapFragment();
+    public static Fragment newInstance(UserDTO userDTO, PlaceMapDTO placeMapDTO) {
+        TripsMapFragment fragment = new TripsMapFragment();
+        Bundle args = new Bundle();
+        args.putSerializable(LoginActivity.USER_DTO_PARAM, userDTO);
+        args.putSerializable(TripsMapFragment.PLACE_DTO_PARAM, placeMapDTO);
+        fragment.setArguments(args);
+        return fragment;
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
 
         if (getArguments() != null) {
-            addPlace = getArguments().getBoolean(ADD_PLACE_ARG);
+            userDTO = (UserDTO) getArguments().getSerializable(LoginActivity.USER_DTO_PARAM);
+            focusPlaceMapDTO = (PlaceMapDTO) getArguments().getSerializable(TripsMapFragment.PLACE_DTO_PARAM);
         }
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_trips_map, container, false);
+
+        autocompleteFragment = (PlaceAutocompleteFragment) getActivity().getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
+
+        autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(Place place) {
+                // TODO: Get info about the selected place.
+                Log.i(getClass().getSimpleName(), "Place: " + place.getName());
+            }
+
+            @Override
+            public void onError(Status status) {
+                // TODO: Handle the error.
+                Log.i(getClass().getSimpleName(), "An error occurred: " + status);
+            }
+        });
+
+        progressView = rootView.findViewById(R.id.trips_map_progress);
 
         mMapView = rootView.findViewById(R.id.mapView);
         mMapView.onCreate(savedInstanceState);
@@ -90,46 +138,72 @@ public class TripsMapFragment extends Fragment {
                 Location location = locationManager.getLastKnownLocation(locationManager
                         .getBestProvider(new Criteria(), false));
                 myLocation = new LatLng(location.getLatitude(), location.getLongitude());
+
+                googleMap.setOnCameraIdleListener(new GoogleMap.OnCameraIdleListener() {
+                    @Override
+                    public void onCameraIdle() {
+                        LatLngBounds bounds = googleMap.getProjection().getVisibleRegion().latLngBounds;
+                        loadAndShowAreaShowplaces(bounds);
+                    }
+                });
                 googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation, 12));
             }
         });
+
         return rootView;
     }
 
-    @Override
-    public void onStart() {
-        AlertDialog.Builder adb = new AlertDialog.Builder(getActivity());
-
-        adb.setTitle("Place coordinates: ");
-        adb.setIcon(android.R.drawable.ic_dialog_alert);
-        adb.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-
-            }
-        });
-        adb.show();
-        super.onStart();
+    private void loadAndShowAreaShowplaces(LatLngBounds bounds) {
+        double distance = getBoundsDistance(bounds);
+        Log.i(getClass().getSimpleName(), "User map view bounds coordinates distance: " + distance);
+        lol(bounds);
     }
 
-    private void showCoordinateSelectionConfirmDialog(final LatLng latLng) {
-        AlertDialog.Builder adb = new AlertDialog.Builder(getActivity());
 
-        adb.setTitle("Place coordinates: " + latLng.latitude + ", " + latLng.longitude);
-        adb.setIcon(android.R.drawable.ic_dialog_alert);
-        adb.setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-                if (mListener != null) {
-                    mListener.onMapPlaceSelected(latLng);
-                }
+    private void lol(LatLngBounds bounds) {
+        if (mListener != null) {
+            if (placesGetTask != null) {
+                return;
             }
-        });
+            // Show a progress spinner, and kick off a background task to
+            // perform the user login attempt.
+            showProgress(true);
+            placesGetTask = new PlacesGetTask(bounds, userDTO);
+            placesGetTask.addShowplacesGetTaskListener(this);
+            placesGetTask.execute((Void) null);
+        }
+    }
 
-        adb.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
+    private double getBoundsDistance(LatLngBounds bounds) {
+        LatLng upRightPoint = bounds.northeast;
+        LatLng bottomLeftPoint = bounds.southwest;
 
-            }
-        });
-        adb.show();
+        return distance(upRightPoint.latitude, bottomLeftPoint.latitude, upRightPoint.longitude, bottomLeftPoint.longitude);
+    }
+
+
+    private double distance(double lat1, double lon1, double lat2, double lon2) {
+        double theta = lon1 - lon2;
+        double dist = Math.sin(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(deg2rad(theta));
+        dist = Math.acos(dist);
+        dist = rad2deg(dist);
+        dist = dist * 60 * 1.1515;
+        dist = dist * 1.609344;
+        return (dist);
+    }
+
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    /*::  This function converts decimal degrees to radians             :*/
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    private double deg2rad(double deg) {
+        return (deg * Math.PI / 180.0);
+    }
+
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    /*::  This function converts radians to decimal degrees             :*/
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    private double rad2deg(double rad) {
+        return (rad * 180.0 / Math.PI);
     }
 
     @Override
@@ -192,7 +266,96 @@ public class TripsMapFragment extends Fragment {
         mListener = null;
     }
 
+    @Override
+    public void setPlacesGetTask(PlacesGetTask placesGetTask) {
+        this.placesGetTask = placesGetTask;
+    }
+
+    @Override
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
+    public void showProgress(final boolean show) {
+        int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
+
+        progressView.setVisibility(show ? View.VISIBLE : View.GONE);
+        progressView.animate().setDuration(shortAnimTime).alpha(
+                show ? 1 : 0).setListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                progressView.setVisibility(show ? View.VISIBLE : View.GONE);
+            }
+        });
+    }
+
+    @Override
+    public void showPlacesGetTaskError() {
+        Toast.makeText(getContext(), "Error", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void showPlaceMapDTOList(PlaceMapDTOList placeMapDTOList) {
+        List<PlaceMapDTO> placesToAdd = new ArrayList<>();
+        for (PlaceMapDTO newPlaceMapDTO : placeMapDTOList.getPlaceMapDTOList()) {
+            boolean alreadyAdded = false;
+            for (PlaceMapDTO mapPlaceMapDTO : placeMapDTOMarkers.keySet()) {
+                if (newPlaceMapDTO.equals(mapPlaceMapDTO)) {
+                    alreadyAdded = true;
+                }
+            }
+            if (!alreadyAdded) {
+                placesToAdd.add(newPlaceMapDTO);
+            }
+        }
+        addPlacesToMap(placesToAdd);
+
+        List<PlaceMapDTO> placesToDelete = new ArrayList<>();
+        for (PlaceMapDTO mapPlaceMapDTO : placeMapDTOMarkers.keySet()) {
+            boolean toDelete = true;
+            for (PlaceMapDTO gettedPlaceMapDTO : placeMapDTOList.getPlaceMapDTOList()) {
+                if (gettedPlaceMapDTO.equals(mapPlaceMapDTO)) {
+                    toDelete = false;
+                }
+            }
+            if (toDelete) {
+                placesToDelete.add(mapPlaceMapDTO);
+            }
+        }
+        removePlacesFromMap(placesToDelete);
+    }
+
+    private void removePlacesFromMap(List<PlaceMapDTO> placesToDelete) {
+        for (PlaceMapDTO placeMapDTO : placesToDelete) {
+            placeMapDTOMarkers.remove(placeMapDTO).remove();
+        }
+    }
+
+    private void addPlacesToMap(List<PlaceMapDTO> placeMapDTOS) {
+        for (PlaceMapDTO placeMapDTO : placeMapDTOS) {
+            int resourceId = R.drawable.places_ic_clear;
+            switch (placeMapDTO.getType()) {
+                case SHOWPLACE: {
+                    resourceId = R.drawable.ic_place_showplace;
+                    break;
+                }
+                case FOOD: {
+                    resourceId = R.drawable.ic_place_food;
+                    break;
+                }
+                case SLEEP: {
+                    resourceId = R.drawable.ic_place_sleep;
+                    break;
+                }
+            }
+
+            BitmapDescriptor markerIcon = BitmapDescriptorFactory.fromResource(resourceId);
+            Marker marker = googleMap.addMarker(new MarkerOptions()
+                    .position(new LatLng(placeMapDTO.getLatitude(), placeMapDTO.getLongitude()))
+                    .title(placeMapDTO.getName())
+                    .snippet("Population: 4,137,400").icon(markerIcon));
+            placeMapDTOMarkers.put(placeMapDTO, marker);
+        }
+    }
+
     public interface OnFragmentInteractionListener {
-        void onMapPlaceSelected(LatLng latLng);
+        void onPlaceSelected(PlaceMapDTO placeMapDTO);
     }
 }

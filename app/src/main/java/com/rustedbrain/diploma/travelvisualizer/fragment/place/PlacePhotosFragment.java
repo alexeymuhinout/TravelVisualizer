@@ -27,14 +27,20 @@ import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rustedbrain.diploma.travelvisualizer.HttpUtils;
 import com.rustedbrain.diploma.travelvisualizer.LoginActivity;
+import com.rustedbrain.diploma.travelvisualizer.MainActivity;
 import com.rustedbrain.diploma.travelvisualizer.R;
-import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceDTO;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceMapDTO;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceType;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.request.AddPlaceRequest;
 
+import org.codehaus.jackson.map.ObjectMapper;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJacksonHttpMessageConverter;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
@@ -58,27 +64,32 @@ public class PlacePhotosFragment extends Fragment {
     private ImageView photoPreviewImageView;
     private LinearLayout photosLayout;
 
-    private OnFragmentInteractionListener mListener;
+    private OnFragmentInteractionListener interactionListener;
 
+    private PlaceType placeType;
     private String placeName;
     private String placeDescription;
-    private float placeRating;
     private double placeLatitude;
     private double placeLongitude;
-    private HashMap<ImageView, Bitmap> imageViewsPhotos = new HashMap<>();
+
     private Button nextButton;
     private ProgressBar progressView;
+    private UserDTO userDTO;
+
+    private HashMap<ImageView, Bitmap> imageViewsPhotos = new HashMap<>();
+
 
     public PlacePhotosFragment() {
         // Required empty public constructor
     }
 
-    public static PlacePhotosFragment newInstance(String name, String description, float rating, double latitude, double longitude) {
+    public static PlacePhotosFragment newInstance(UserDTO userDTO, PlaceType placeType, String name, String description, double latitude, double longitude) {
         PlacePhotosFragment fragment = new PlacePhotosFragment();
         Bundle args = new Bundle();
+        args.putSerializable(LoginActivity.USER_DTO_PARAM, userDTO);
+        args.putString(PlaceDescriptionFragment.PLACE_TYPE_ARG_PARAM, placeType.name());
         args.putString(PlaceDescriptionFragment.NAME_ARG_PARAM, name);
         args.putString(PlaceDescriptionFragment.DESCRIPTION_ARG_PARAM, description);
-        args.putFloat(PlaceDescriptionFragment.RATING_ARG_PARAM, rating);
         args.putDouble(PlaceDescriptionFragment.LAT_ARG_PARAM, latitude);
         args.putDouble(PlaceDescriptionFragment.LNG_ARG_PARAM, longitude);
         fragment.setArguments(args);
@@ -89,9 +100,10 @@ public class PlacePhotosFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
+            userDTO = (UserDTO) getArguments().getSerializable(LoginActivity.USER_DTO_PARAM);
+            placeType = PlaceType.valueOf(getArguments().getString(PlaceDescriptionFragment.PLACE_TYPE_ARG_PARAM));
             placeName = getArguments().getString(PlaceDescriptionFragment.NAME_ARG_PARAM);
             placeDescription = getArguments().getString(PlaceDescriptionFragment.DESCRIPTION_ARG_PARAM);
-            placeRating = getArguments().getFloat(PlaceDescriptionFragment.RATING_ARG_PARAM);
             placeLatitude = getArguments().getDouble(PlaceDescriptionFragment.LAT_ARG_PARAM);
             placeLongitude = getArguments().getDouble(PlaceDescriptionFragment.LNG_ARG_PARAM);
         }
@@ -152,7 +164,7 @@ public class PlacePhotosFragment extends Fragment {
     }
 
     private void nextButtonClicked() {
-        if (mListener != null) {
+        if (interactionListener != null) {
             if (placeAddTask != null) {
                 return;
             }
@@ -163,21 +175,21 @@ public class PlacePhotosFragment extends Fragment {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-            placeAddTask = new PlaceAddTask(placeName, placeDescription, placeRating, placeLatitude, placeLongitude, imageViewsPhotos.values(), this);
+            placeAddTask = new PlaceAddTask(placeType, placeName, placeDescription, placeLatitude, placeLongitude, imageViewsPhotos.values(), this);
             placeAddTask.execute((Void) null);
 
         }
     }
 
     private void cancelButtonClicked() {
-        if (mListener != null) {
-            mListener.onPlacePhotosFragmentCancelClicked();
+        if (interactionListener != null) {
+            interactionListener.onPlacePhotosFragmentCancelClicked();
         }
     }
 
     private void backButtonClicked() {
-        if (mListener != null) {
-            mListener.onPlacePhotosFragmentBackClicked(placeName, placeDescription, placeRating, placeLatitude, placeLongitude);
+        if (interactionListener != null) {
+            interactionListener.onPlacePhotosFragmentBackClicked(placeType, placeName, placeDescription, placeLatitude, placeLongitude);
         }
     }
 
@@ -256,7 +268,7 @@ public class PlacePhotosFragment extends Fragment {
     public void onAttach(Context context) {
         super.onAttach(context);
         if (context instanceof OnFragmentInteractionListener) {
-            mListener = (OnFragmentInteractionListener) context;
+            interactionListener = (OnFragmentInteractionListener) context;
         } else {
             throw new RuntimeException(context.toString()
                     + " must implement OnFragmentInteractionListener");
@@ -266,7 +278,7 @@ public class PlacePhotosFragment extends Fragment {
     @Override
     public void onDetach() {
         super.onDetach();
-        mListener = null;
+        interactionListener = null;
     }
 
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
@@ -283,8 +295,8 @@ public class PlacePhotosFragment extends Fragment {
         });
     }
 
-    public OnFragmentInteractionListener getmListener() {
-        return mListener;
+    public OnFragmentInteractionListener getInteractionListener() {
+        return interactionListener;
     }
 
     public void setPlaceAddTask(PlaceAddTask placeAddTask) {
@@ -295,26 +307,26 @@ public class PlacePhotosFragment extends Fragment {
 
         void onPlacePhotosFragmentCancelClicked();
 
-        void onPlacePhotosFragmentBackClicked(String name, String description, float rating, double latitude, double longitude);
+        void onPlacePhotosFragmentBackClicked(PlaceType placeType, String name, String description, double latitude, double longitude);
 
-        void onPlacePhotosFragmentNextClicked(double latitude, double longitude);
+        void onPlacePhotosFragmentNextClicked(PlaceMapDTO placeMapDTO);
     }
 
-    private static class PlaceAddTask extends AsyncTask<Void, Void, PlaceDTO> {
+    private static class PlaceAddTask extends AsyncTask<Void, Void, PlaceMapDTO> {
 
+        private final PlaceType placeType;
         private final String name;
         private final String description;
-        private final float rating;
         private final double latitude;
         private final double longitude;
         private final Collection<Bitmap> photos;
 
         private final PlacePhotosFragment placePhotosFragment;
 
-        private PlaceAddTask(String name, String description, float rating, double latitude, double longitude, Collection<Bitmap> photos, PlacePhotosFragment placePhotosFragment) {
+        private PlaceAddTask(PlaceType placeType, String name, String description, double latitude, double longitude, Collection<Bitmap> photos, PlacePhotosFragment placePhotosFragment) {
+            this.placeType = placeType;
             this.name = name;
             this.description = description;
-            this.rating = rating;
             this.latitude = latitude;
             this.longitude = longitude;
             this.photos = photos;
@@ -328,7 +340,7 @@ public class PlacePhotosFragment extends Fragment {
         }
 
         @Override
-        protected PlaceDTO doInBackground(Void... params) {
+        protected PlaceMapDTO doInBackground(Void... params) {
             try {
                 List<byte[]> photoList = new ArrayList<>();
                 for (Bitmap photo : photos) {
@@ -336,15 +348,19 @@ public class PlacePhotosFragment extends Fragment {
                 }
 
                 RestTemplate restTemplate = new RestTemplate();
-                restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
-                PlaceDTO request = new PlaceDTO(name, description, rating, latitude, longitude, photoList);
+                restTemplate.getMessageConverters().add(new MappingJacksonHttpMessageConverter());
+                AddPlaceRequest request = new AddPlaceRequest(placeType, name, description, latitude, longitude, photoList);
+                HttpHeaders httpHeaders = new HttpHeaders();
+                httpHeaders.add(MainActivity.AUTH_TOKEN_HEADER_NAME, placePhotosFragment.userDTO.getToken());
+
+                HttpEntity<AddPlaceRequest> entity = new HttpEntity<>(request, httpHeaders);
 
                 return restTemplate.postForObject(new URI(HttpUtils.getAbsoluteUrl(HttpUtils.PLACE_ADD_URL)),
-                        request, PlaceDTO.class);
+                        entity, PlaceMapDTO.class);
             } catch (HttpClientErrorException e) {
                 Log.e(LoginActivity.class.getName(), e.getMessage(), e);
                 try {
-                    return new ObjectMapper().readValue(e.getResponseBodyAsString(), PlaceDTO.class);
+                    return new ObjectMapper().readValue(e.getResponseBodyAsString(), PlaceMapDTO.class);
                 } catch (IOException e1) {
                     return null;
                 }
@@ -355,14 +371,14 @@ public class PlacePhotosFragment extends Fragment {
         }
 
         @Override
-        protected void onPostExecute(final PlaceDTO responseEntity) {
+        protected void onPostExecute(final PlaceMapDTO placeMapDTO) {
             placePhotosFragment.setPlaceAddTask(null);
             placePhotosFragment.showProgress(false);
 
-            if (responseEntity == null) {
-                Toast.makeText(placePhotosFragment.getContext(), getString(R.string.error_invalid_url), Toast.LENGTH_LONG).show();
-            } else if (HttpStatus.OK.equals(responseEntity.getStatus())) {
-                placePhotosFragment.getmListener().onPlacePhotosFragmentNextClicked(latitude, longitude);
+            if (placeMapDTO == null) {
+                Toast.makeText(placePhotosFragment.getContext(), placePhotosFragment.getString(R.string.error_invalid_url), Toast.LENGTH_LONG).show();
+            } else if (HttpStatus.OK.equals(placeMapDTO.getStatus())) {
+                placePhotosFragment.getInteractionListener().onPlacePhotosFragmentNextClicked(placeMapDTO);
             } else {
                 placePhotosFragment.getNextButton().setError("Error");
                 placePhotosFragment.getNextButton().requestFocus();
