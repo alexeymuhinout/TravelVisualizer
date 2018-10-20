@@ -5,11 +5,12 @@
     android:orientation="vertical"
     tools:context=".fragment.TripsMapFragment">
 
-    <fragment
-        android:id="@+id/place_autocomplete_fragment"
-        android:name="com.google.android.gms.location.places.ui.PlaceAutocompleteFragment"
+    <LinearLayout
+        android:id="@+id/layout_place_autocomplete_fragment"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="visible" />
 
     <RelativeLayout
         android:layout_width="match_parent"

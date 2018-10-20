@@ -4,6 +4,7 @@ import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.app.FragmentManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
@@ -50,12 +51,10 @@ import java.util.Map;
 public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGetTaskListener {
 
     public static final String PLACE_DTO_PARAM = "place";
-
+    private static final int DEFAULT_CAMERA_FOCUS_ZOOM = 12;
     MapView mMapView;
-
     private OnFragmentInteractionListener mListener;
     private GoogleMap googleMap;
-
     private LatLng myLocation;
     private UserDTO userDTO;
     private PlaceMapDTO focusPlaceMapDTO;
@@ -96,16 +95,31 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
     }
 
     @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (getActivity() != null) {
+            FragmentManager fragmentManager = getActivity().getFragmentManager();
+            android.app.FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+            fragmentTransaction.remove(autocompleteFragment);
+            fragmentTransaction.commit();
+        }
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_trips_map, container, false);
 
-        autocompleteFragment = (PlaceAutocompleteFragment) getActivity().getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
+        autocompleteFragment = new PlaceAutocompleteFragment();
+        FragmentManager fragmentManager = getActivity().getFragmentManager();
+        android.app.FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction.replace(R.id.layout_place_autocomplete_fragment, autocompleteFragment);
+        fragmentTransaction.commit();
 
         autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
             @Override
             public void onPlaceSelected(Place place) {
-                // TODO: Get info about the selected place.
                 Log.i(getClass().getSimpleName(), "Place: " + place.getName());
+                googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), DEFAULT_CAMERA_FOCUS_ZOOM));
             }
 
             @Override
@@ -137,8 +151,11 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
                         getContext().getSystemService(Context.LOCATION_SERVICE);
                 Location location = locationManager.getLastKnownLocation(locationManager
                         .getBestProvider(new Criteria(), false));
-                myLocation = new LatLng(location.getLatitude(), location.getLongitude());
-
+                if (location != null) {
+                    myLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                } else {
+                    myLocation = new LatLng(65.9667, -18.5333);
+                }
                 googleMap.setOnCameraIdleListener(new GoogleMap.OnCameraIdleListener() {
                     @Override
                     public void onCameraIdle() {
@@ -146,7 +163,7 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
                         loadAndShowAreaShowplaces(bounds);
                     }
                 });
-                googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation, 12));
+                googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation, DEFAULT_CAMERA_FOCUS_ZOOM));
             }
         });
 
@@ -156,11 +173,11 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
     private void loadAndShowAreaShowplaces(LatLngBounds bounds) {
         double distance = getBoundsDistance(bounds);
         Log.i(getClass().getSimpleName(), "User map view bounds coordinates distance: " + distance);
-        lol(bounds);
+        startPlacesGetTask(bounds);
     }
 
 
-    private void lol(LatLngBounds bounds) {
+    private void startPlacesGetTask(LatLngBounds bounds) {
         if (mListener != null) {
             if (placesGetTask != null) {
                 return;
@@ -310,8 +327,8 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
         List<PlaceMapDTO> placesToDelete = new ArrayList<>();
         for (PlaceMapDTO mapPlaceMapDTO : placeMapDTOMarkers.keySet()) {
             boolean toDelete = true;
-            for (PlaceMapDTO gettedPlaceMapDTO : placeMapDTOList.getPlaceMapDTOList()) {
-                if (gettedPlaceMapDTO.equals(mapPlaceMapDTO)) {
+            for (PlaceMapDTO newPlaceMapDTO : placeMapDTOList.getPlaceMapDTOList()) {
+                if (newPlaceMapDTO.equals(mapPlaceMapDTO)) {
                     toDelete = false;
                 }
             }

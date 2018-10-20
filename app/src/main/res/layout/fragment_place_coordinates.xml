@@ -26,8 +26,10 @@
 
             <Button
                 android:id="@+id/button_marker_on_me"
+                style="@style/Widget.AppCompat.Button.Colored"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:backgroundTint="@color/cardview_dark_background"
                 android:text="@string/button_mark_me" />
 
 
@@ -38,16 +40,20 @@
 
                 <Button
                     android:id="@+id/button_place_creation_cancel"
+                    style="@style/Widget.AppCompat.Button.Colored"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:backgroundTint="@color/cardview_dark_background"
                     android:text="@string/button_place_creation_cancel" />
 
                 <Button
                     android:id="@+id/button_place_creation_open_description"
+                    style="@style/Widget.AppCompat.Button.Colored"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:backgroundTint="@color/cardview_dark_background"
                     android:text="@string/button_place_creation_open_description" />
             </LinearLayout>
         </LinearLayout>

@@ -11,26 +11,34 @@
 
         <Button
             android:id="@+id/button_profile"
+            style="@style/Widget.AppCompat.Button.Colored"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:backgroundTint="@color/cardview_dark_background"
             android:text="@string/button_profile" />
 
         <Button
             android:id="@+id/button_saved_routes"
+            style="@style/Widget.AppCompat.Button.Colored"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:backgroundTint="@color/cardview_dark_background"
             android:text="@string/button_saved_routes" />
 
         <Button
             android:id="@+id/button_archived_routes"
+            style="@style/Widget.AppCompat.Button.Colored"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:backgroundTint="@color/cardview_dark_background"
             android:text="@string/button_archived_routes" />
 
         <Button
             android:id="@+id/button_add_place"
+            style="@style/Widget.AppCompat.Button.Colored"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:backgroundTint="@color/cardview_dark_background"
             android:text="@string/button_add_place" />
 
     </LinearLayout>
