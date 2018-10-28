@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 26
-    buildToolsVersion '27.0.3'
+    buildToolsVersion '28.0.3'
     defaultConfig {
         applicationId "com.rustedbrain.diploma.travelvisualizer"
         minSdkVersion 26
@@ -59,7 +59,7 @@ dependencies {
     implementation 'com.google.android.gms:play-services-places:16.0.0'
     implementation 'com.android.support:recyclerview-v7:26.1.0'
     implementation 'com.github.arimorty:floatingsearchview:2.1.1'
-    implementation ('com.github.bumptech.glide:glide:4.8.0'){
+    implementation('com.github.bumptech.glide:glide:4.8.0') {
         exclude group: "com.android.support"
     }
     annotationProcessor 'com.github.bumptech.glide:compiler:4.8.0'

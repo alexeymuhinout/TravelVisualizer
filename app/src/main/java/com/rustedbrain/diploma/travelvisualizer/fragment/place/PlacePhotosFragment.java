@@ -27,10 +27,10 @@ import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import com.rustedbrain.diploma.travelvisualizer.HttpUtils;
 import com.rustedbrain.diploma.travelvisualizer.LoginActivity;
 import com.rustedbrain.diploma.travelvisualizer.MainActivity;
 import com.rustedbrain.diploma.travelvisualizer.R;
+import com.rustedbrain.diploma.travelvisualizer.TravelAppUtils;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceMapDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceType;
@@ -355,7 +355,7 @@ public class PlacePhotosFragment extends Fragment {
 
                 HttpEntity<AddPlaceRequest> entity = new HttpEntity<>(request, httpHeaders);
 
-                return restTemplate.postForObject(new URI(HttpUtils.getAbsoluteUrl(HttpUtils.PLACE_ADD_URL)),
+                return restTemplate.postForObject(new URI(TravelAppUtils.getAbsoluteUrl(TravelAppUtils.PLACE_ADD_URL)),
                         entity, PlaceMapDTO.class);
             } catch (HttpClientErrorException e) {
                 Log.e(LoginActivity.class.getName(), e.getMessage(), e);

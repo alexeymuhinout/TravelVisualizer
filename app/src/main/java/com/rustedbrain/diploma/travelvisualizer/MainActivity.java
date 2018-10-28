@@ -1,6 +1,7 @@
 package com.rustedbrain.diploma.travelvisualizer;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
@@ -12,6 +13,7 @@ import android.view.MenuItem;
 import com.google.android.gms.maps.model.LatLng;
 import com.rustedbrain.diploma.travelvisualizer.dummy.DummyContent;
 import com.rustedbrain.diploma.travelvisualizer.fragment.HomeFragment;
+import com.rustedbrain.diploma.travelvisualizer.fragment.MapPlaceDescriptionFragment;
 import com.rustedbrain.diploma.travelvisualizer.fragment.TripsMapFragment;
 import com.rustedbrain.diploma.travelvisualizer.fragment.home.ProfileFragment;
 import com.rustedbrain.diploma.travelvisualizer.fragment.home.TripsListFragment;
@@ -22,7 +24,7 @@ import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceMapDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceType;
 
-public class MainActivity extends AppCompatActivity implements PlacePhotosFragment.OnFragmentInteractionListener, TripsListFragment.OnListFragmentInteractionListener, HomeFragment.OnHomeFragmentButtonClickListener, PlaceCoordinatesFragment.OnFragmentInteractionListener, ProfileFragment.OnFragmentInteractionListener, PlaceDescriptionFragment.OnFragmentInteractionListener, TripsMapFragment.OnFragmentInteractionListener {
+public class MainActivity extends AppCompatActivity implements PlacePhotosFragment.OnFragmentInteractionListener, TripsListFragment.OnListFragmentInteractionListener, HomeFragment.OnHomeFragmentButtonClickListener, PlaceCoordinatesFragment.OnFragmentInteractionListener, ProfileFragment.OnFragmentInteractionListener, PlaceDescriptionFragment.OnFragmentInteractionListener, TripsMapFragment.OnFragmentInteractionListener, MapPlaceDescriptionFragment.OnFragmentInteractionListener  {
 
     public static final String AUTH_TOKEN_HEADER_NAME = "X-AUTH-TOKEN";
     private UserDTO userDTO;
@@ -193,6 +195,11 @@ public class MainActivity extends AppCompatActivity implements PlacePhotosFragme
 
     @Override
     public void onPlaceSelected(PlaceMapDTO placeMapDTO) {
+
+    }
+
+    @Override
+    public void onFragmentInteraction(Uri uri) {
 
     }
 }

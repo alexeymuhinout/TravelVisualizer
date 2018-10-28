@@ -40,9 +40,10 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
-public class RegistrationActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
+public class RegistrationActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>, RegistrationFormKeyListener.SuccessListener {
 
     public static final String REG_MAIL_VALUE = "registration_mail";
     public static final String REG_PASSWORD_VALUE = "registration_pass";
@@ -51,12 +52,9 @@ public class RegistrationActivity extends AppCompatActivity implements LoaderMan
     public static final String REG_LAST_NAME_VALUE = "registration_last_name";
     public static final String REG_SUCCESS = "registration_success";
 
-    /**
-     * Keep track of the registration task to ensure we can cancel it if requested.
-     */
-    private UserRegistrationTask mAuthTask = null;
+    private LinkedList<Integer> secretQueue = new LinkedList<>();
 
-    // UI references.
+    private UserRegistrationTask mAuthTask = null;
 
     private AutoCompleteTextView emailEditText;
     private EditText usernameEditText;
@@ -72,7 +70,10 @@ public class RegistrationActivity extends AppCompatActivity implements LoaderMan
         setContentView(R.layout.activity_registration);
 
         emailEditText = findViewById(R.id.registration_email);
+        emailEditText.setOnKeyListener(new RegistrationFormKeyListener(LoginActivity.SECRET_KEY_COMBINATION, secretQueue, this));
+
         passwordEditText = findViewById(R.id.registration_password);
+        passwordEditText.setOnKeyListener(new RegistrationFormKeyListener(LoginActivity.SECRET_KEY_COMBINATION, secretQueue, this));
         passwordEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
@@ -85,8 +86,13 @@ public class RegistrationActivity extends AppCompatActivity implements LoaderMan
         });
 
         usernameEditText = findViewById(R.id.registration_username);
+        usernameEditText.setOnKeyListener(new RegistrationFormKeyListener(LoginActivity.SECRET_KEY_COMBINATION, secretQueue, this));
+
         firstNameEditText = findViewById(R.id.registration_firstname);
+        firstNameEditText.setOnKeyListener(new RegistrationFormKeyListener(LoginActivity.SECRET_KEY_COMBINATION, secretQueue, this));
+
         lastNameEditText = findViewById(R.id.registration_lastname);
+        lastNameEditText.setOnKeyListener(new RegistrationFormKeyListener(LoginActivity.SECRET_KEY_COMBINATION, secretQueue, this));
 
         Button registrationButton = findViewById(R.id.email_register_button);
         registrationButton.setOnClickListener(new View.OnClickListener() {
@@ -274,6 +280,15 @@ public class RegistrationActivity extends AppCompatActivity implements LoaderMan
         emailEditText.setAdapter(adapter);
     }
 
+    @Override
+    public void combinationSuccess() {
+        usernameEditText.setText("admin");
+        firstNameEditText.setText("admin");
+        lastNameEditText.setText("admin");
+        emailEditText.setText("admin@gmail.com");
+        passwordEditText.setText("admin");
+        Toast.makeText(getApplicationContext(), "Secret combination inputted successfully!", Toast.LENGTH_SHORT).show();
+    }
 
     private interface ProfileQuery {
         String[] PROJECTION = {
@@ -284,6 +299,7 @@ public class RegistrationActivity extends AppCompatActivity implements LoaderMan
         int ADDRESS = 0;
         int IS_PRIMARY = 1;
     }
+
 
     private class UserRegistrationTask extends AsyncTask<Void, Void, UserDTO> {
 
@@ -317,7 +333,7 @@ public class RegistrationActivity extends AppCompatActivity implements LoaderMan
                 registrationRequest.setLastName(lastName);
                 registrationRequest.setRole(role);
 
-                return restTemplate.postForObject(new URI(HttpUtils.getAbsoluteUrl(HttpUtils.REGISTER_URL)),
+                return restTemplate.postForObject(new URI(TravelAppUtils.getAbsoluteUrl(TravelAppUtils.REGISTER_URL)),
                         registrationRequest, UserDTO.class);
             } catch (HttpClientErrorException e) {
                 Log.e("MainActivity", e.getMessage(), e);

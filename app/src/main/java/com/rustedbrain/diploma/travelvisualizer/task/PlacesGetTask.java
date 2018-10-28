@@ -4,9 +4,9 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLngBounds;
-import com.rustedbrain.diploma.travelvisualizer.HttpUtils;
 import com.rustedbrain.diploma.travelvisualizer.LoginActivity;
 import com.rustedbrain.diploma.travelvisualizer.MainActivity;
+import com.rustedbrain.diploma.travelvisualizer.TravelAppUtils;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.LatLngBoundsDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceMapDTOList;
@@ -53,7 +53,7 @@ public class PlacesGetTask extends AsyncTask<Void, Void, PlaceMapDTOList> {
 
             HttpEntity<GetPlacesRequest> entity = new HttpEntity<>(request, httpHeaders);
 
-            return restTemplate.postForObject(new URI(HttpUtils.getAbsoluteUrl(HttpUtils.PLACE_GET_BOUNDS_URL)),
+            return restTemplate.postForObject(new URI(TravelAppUtils.getAbsoluteUrl(TravelAppUtils.PLACE_GET_BOUNDS_URL)),
                     entity, PlaceMapDTOList.class);
         } catch (HttpClientErrorException e) {
             Log.e(LoginActivity.class.getName(), e.getMessage(), e);

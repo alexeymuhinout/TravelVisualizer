@@ -15,10 +15,14 @@ import android.widget.EditText;
 
 import com.rustedbrain.diploma.travelvisualizer.LoginActivity;
 import com.rustedbrain.diploma.travelvisualizer.R;
+import com.rustedbrain.diploma.travelvisualizer.RegistrationFormKeyListener;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceType;
 
-public class PlaceDescriptionFragment extends Fragment {
+import java.util.LinkedList;
+import java.util.Random;
+
+public class PlaceDescriptionFragment extends Fragment implements RegistrationFormKeyListener.SuccessListener {
 
     public static final String LAT_ARG_PARAM = "lat";
     public static final String LNG_ARG_PARAM = "lng";
@@ -28,7 +32,10 @@ public class PlaceDescriptionFragment extends Fragment {
     private static final String DEFAULT_PLACE_NAME = "";
     private static final String DEFAULT_PLACE_DESCRIPTION = "";
     private static final String DEFAULT_PLACE_TYPE = PlaceType.NOT_SELECTED.name();
-    private OnFragmentInteractionListener mListener;
+
+    private LinkedList<Integer> secretQueue = new LinkedList<>();
+
+    private OnFragmentInteractionListener listener;
 
     private CheckBox showplaceCheckBox;
     private CheckBox foodCheckBox;
@@ -134,12 +141,15 @@ public class PlaceDescriptionFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_place_description, container, false);
 
         placeNameEditText = view.findViewById(R.id.place_name_edit_text);
+        placeNameEditText.setOnKeyListener(new RegistrationFormKeyListener(LoginActivity.SECRET_KEY_COMBINATION, secretQueue, this));
         placeNameEditText.setText(placeName);
 
         placeDescriptionEditText = view.findViewById(R.id.place_description_edit_text);
+        placeDescriptionEditText.setOnKeyListener(new RegistrationFormKeyListener(LoginActivity.SECRET_KEY_COMBINATION, secretQueue, this));
         placeDescriptionEditText.setText(placeDescription);
 
         showplaceCheckBox = view.findViewById(R.id.checkBox_place_description_showplace);
+        showplaceCheckBox.setOnKeyListener(new RegistrationFormKeyListener(LoginActivity.SECRET_KEY_COMBINATION, secretQueue, this));
         showplaceCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -147,6 +157,7 @@ public class PlaceDescriptionFragment extends Fragment {
             }
         });
         foodCheckBox = view.findViewById(R.id.checkBox_place_description_food);
+        foodCheckBox.setOnKeyListener(new RegistrationFormKeyListener(LoginActivity.SECRET_KEY_COMBINATION, secretQueue, this));
         foodCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -154,6 +165,7 @@ public class PlaceDescriptionFragment extends Fragment {
             }
         });
         sleepCheckBox = view.findViewById(R.id.checkBox_place_description_sleep);
+        sleepCheckBox.setOnKeyListener(new RegistrationFormKeyListener(LoginActivity.SECRET_KEY_COMBINATION, secretQueue, this));
         sleepCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -221,23 +233,23 @@ public class PlaceDescriptionFragment extends Fragment {
     }
 
     private void nextButtonClicked() {
-        if (mListener != null) {
+        if (listener != null) {
             String name = placeNameEditText.getText().toString().trim();
             String description = placeDescriptionEditText.getText().toString().trim();
             PlaceType placeType = getSelectedPlaceType();
-            mListener.onFragmentDescriptionButtonNextClicked(placeType, name, description, placeLatitude, placeLongitude);
+            listener.onFragmentDescriptionButtonNextClicked(placeType, name, description, placeLatitude, placeLongitude);
         }
     }
 
     private void backButtonClicked() {
-        if (mListener != null) {
-            mListener.onFragmentDescriptionButtonBackClicked(placeLatitude, placeLongitude);
+        if (listener != null) {
+            listener.onFragmentDescriptionButtonBackClicked(placeLatitude, placeLongitude);
         }
     }
 
     private void cancelButtonClicked() {
-        if (mListener != null) {
-            mListener.onDescriptionCancelButtonClicked();
+        if (listener != null) {
+            listener.onDescriptionCancelButtonClicked();
         }
     }
 
@@ -250,7 +262,7 @@ public class PlaceDescriptionFragment extends Fragment {
     public void onAttach(Context context) {
         super.onAttach(context);
         if (context instanceof OnFragmentInteractionListener) {
-            mListener = (OnFragmentInteractionListener) context;
+            listener = (OnFragmentInteractionListener) context;
         } else {
             throw new RuntimeException(context.toString()
                     + " must implement OnFragmentInteractionListener");
@@ -260,7 +272,30 @@ public class PlaceDescriptionFragment extends Fragment {
     @Override
     public void onDetach() {
         super.onDetach();
-        mListener = null;
+        listener = null;
+    }
+
+    @Override
+    public void combinationSuccess() {
+        Random random = new Random();
+        PlaceType placeType = PlaceType.values()[random.nextInt(3)];
+        switch (placeType) {
+            case SHOWPLACE: {
+                onShowplaceCheckBoxChecked(true);
+                break;
+            }
+            case FOOD: {
+                onFoodCheckBoxChecked(true);
+                break;
+            }
+            case SLEEP: {
+                onSleepCheckBoxChecked(true);
+                break;
+            }
+        }
+        int randomNumber = random.nextInt(1000);
+        placeNameEditText.setText(placeType.name().toLowerCase() + "_" + randomNumber);
+        placeDescriptionEditText.setText(placeType.name().toLowerCase() + "_" + randomNumber + " description");
     }
 
     public interface OnFragmentInteractionListener {

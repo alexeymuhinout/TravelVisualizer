@@ -2,24 +2,25 @@ package com.rustedbrain.diploma.travelvisualizer.model.dto;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.LatLngDTO;
 
 import java.io.Serializable;
 
 public final class LatLngBoundsDTO implements Serializable {
 
-    public LatLngDTO southwest;
-    public LatLngDTO northeast;
+    public BoundsLatLngDTO southwest;
+    public BoundsLatLngDTO northeast;
 
     public LatLngBoundsDTO() {
     }
 
-    public LatLngBoundsDTO(LatLngDTO var1, LatLngDTO var2) {
+    public LatLngBoundsDTO(BoundsLatLngDTO var1, BoundsLatLngDTO var2) {
         if (var1 == null) {
             throw new IllegalArgumentException("null southwest");
         } else if (var2 == null) {
             throw new IllegalArgumentException("null northeast");
-        } else if (var2.latitude < var1.latitude) {
-            throw new IllegalArgumentException(String.format("southern latitude exceeds northern latitude (%s > %s)", var1.latitude, var2.latitude));
+        } else if (var2.getLatitude() < var1.getLatitude()) {
+            throw new IllegalArgumentException(String.format("southern latitude exceeds northern latitude (%s > %s)", var1.getLatitude(), var2.getLatitude()));
         }
 
         this.southwest = var1;
@@ -27,7 +28,7 @@ public final class LatLngBoundsDTO implements Serializable {
     }
 
     public LatLngBoundsDTO(LatLngBounds bounds) {
-        this(new LatLngDTO(bounds.southwest), new LatLngDTO(bounds.northeast));
+        this(new BoundsLatLngDTO(bounds.southwest), new BoundsLatLngDTO(bounds.northeast));
     }
 
     public static LatLngBoundsDTO.Builder builder() {
@@ -42,17 +43,17 @@ public final class LatLngBoundsDTO implements Serializable {
         return (var2 - var0 + 360.0D) % 360.0D;
     }
 
-    public final boolean contains(LatLngDTO var1) {
-        double var4 = var1.latitude;
-        return this.southwest.latitude <= var4 && var4 <= this.northeast.latitude && this.zza(var1.longitude);
+    public final boolean contains(BoundsLatLngDTO var1) {
+        double var4 = var1.getLatitude();
+        return this.southwest.getLatitude() <= var4 && var4 <= this.northeast.getLatitude() && this.zza(var1.getLongitude());
     }
 
-    public final LatLngBoundsDTO including(LatLngDTO var1) {
-        double var3 = Math.min(this.southwest.latitude, var1.latitude);
-        double var5 = Math.max(this.northeast.latitude, var1.latitude);
-        double var7 = this.northeast.longitude;
-        double var9 = this.southwest.longitude;
-        double var11 = var1.longitude;
+    public final LatLngBoundsDTO including(BoundsLatLngDTO var1) {
+        double var3 = Math.min(this.southwest.getLatitude(), var1.getLatitude());
+        double var5 = Math.max(this.northeast.getLatitude(), var1.getLatitude());
+        double var7 = this.northeast.getLongitude();
+        double var9 = this.southwest.getLongitude();
+        double var11 = var1.getLongitude();
         if (!this.zza(var11)) {
             if (zza(var9, var11) < zzb(var7, var11)) {
                 var9 = var11;
@@ -61,28 +62,28 @@ public final class LatLngBoundsDTO implements Serializable {
             }
         }
 
-        return new LatLngBoundsDTO(new LatLngDTO(var3, var9), new LatLngDTO(var5, var7));
+        return new LatLngBoundsDTO(new BoundsLatLngDTO(var3, var9), new BoundsLatLngDTO(var5, var7));
     }
 
-    public final LatLngDTO getCenter() {
-        double var1 = (this.southwest.latitude + this.northeast.latitude) / 2.0D;
-        double var3 = this.northeast.longitude;
-        double var5 = this.southwest.longitude;
+    public final BoundsLatLngDTO getCenter() {
+        double var1 = (this.southwest.getLatitude() + this.northeast.getLatitude()) / 2.0D;
+        double var3 = this.northeast.getLongitude();
+        double var5 = this.southwest.getLongitude();
         double var7;
-        if (this.southwest.longitude <= var3) {
+        if (this.southwest.getLongitude() <= var3) {
             var7 = (var3 + var5) / 2.0D;
         } else {
             var7 = (var3 + 360.0D + var5) / 2.0D;
         }
 
-        return new LatLngDTO(var1, var7);
+        return new BoundsLatLngDTO(var1, var7);
     }
 
     private final boolean zza(double var1) {
-        if (this.southwest.longitude <= this.northeast.longitude) {
-            return this.southwest.longitude <= var1 && var1 <= this.northeast.longitude;
+        if (this.southwest.getLongitude() <= this.northeast.getLongitude()) {
+            return this.southwest.getLongitude() <= var1 && var1 <= this.northeast.getLongitude();
         } else {
-            return this.southwest.longitude <= var1 || var1 <= this.northeast.longitude;
+            return this.southwest.getLongitude() <= var1 || var1 <= this.northeast.getLongitude();
         }
     }
 
@@ -97,15 +98,12 @@ public final class LatLngBoundsDTO implements Serializable {
         }
     }
 
-    public static class LatLngDTO {
+    public static class BoundsLatLngDTO extends LatLngDTO {
 
-        public double latitude;
-        public double longitude;
-
-        public LatLngDTO() {
+        public BoundsLatLngDTO() {
         }
 
-        public LatLngDTO(double var1, double var3) {
+        public BoundsLatLngDTO(double var1, double var3) {
             if (-180.0D <= var3 && var3 < 180.0D) {
                 this.longitude = var3;
             } else {
@@ -115,7 +113,7 @@ public final class LatLngBoundsDTO implements Serializable {
             this.latitude = Math.max(-90.0D, Math.min(90.0D, var1));
         }
 
-        public LatLngDTO(LatLng latLng) {
+        public BoundsLatLngDTO(LatLng latLng) {
             this(latLng.latitude, latLng.longitude);
         }
 
@@ -129,10 +127,10 @@ public final class LatLngBoundsDTO implements Serializable {
         public final boolean equals(Object var1) {
             if (this == var1) {
                 return true;
-            } else if (!(var1 instanceof LatLngDTO)) {
+            } else if (!(var1 instanceof BoundsLatLngDTO)) {
                 return false;
             } else {
-                LatLngDTO var2 = (LatLngDTO) var1;
+                BoundsLatLngDTO var2 = (BoundsLatLngDTO) var1;
                 return Double.doubleToLongBits(this.latitude) == Double.doubleToLongBits(var2.latitude) && Double.doubleToLongBits(this.longitude) == Double.doubleToLongBits(var2.longitude);
             }
         }
@@ -151,10 +149,10 @@ public final class LatLngBoundsDTO implements Serializable {
         public Builder() {
         }
 
-        public final LatLngBoundsDTO.Builder include(LatLngDTO var1) {
-            this.zzdg = Math.min(this.zzdg, var1.latitude);
-            this.zzdh = Math.max(this.zzdh, var1.latitude);
-            double var2 = var1.longitude;
+        public final LatLngBoundsDTO.Builder include(BoundsLatLngDTO var1) {
+            this.zzdg = Math.min(this.zzdg, var1.getLatitude());
+            this.zzdh = Math.max(this.zzdh, var1.getLatitude());
+            double var2 = var1.getLongitude();
             if (Double.isNaN(this.zzdi)) {
                 this.zzdi = var2;
             } else {
@@ -176,7 +174,7 @@ public final class LatLngBoundsDTO implements Serializable {
             if (Double.isNaN(this.zzdi)) {
                 throw new IllegalArgumentException("no included points");
             }
-            return new LatLngBoundsDTO(new LatLngDTO(this.zzdg, this.zzdi), new LatLngDTO(this.zzdh, this.zzdj));
+            return new LatLngBoundsDTO(new BoundsLatLngDTO(this.zzdg, this.zzdi), new BoundsLatLngDTO(this.zzdh, this.zzdj));
         }
     }
 }

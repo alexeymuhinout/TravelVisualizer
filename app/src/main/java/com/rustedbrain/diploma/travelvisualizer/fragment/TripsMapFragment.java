@@ -18,6 +18,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -37,9 +38,12 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.rustedbrain.diploma.travelvisualizer.LoginActivity;
 import com.rustedbrain.diploma.travelvisualizer.R;
+import com.rustedbrain.diploma.travelvisualizer.TravelAppUtils;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceDescriptionDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceMapDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceMapDTOList;
+import com.rustedbrain.diploma.travelvisualizer.task.GetPlaceDescriptionTask;
 import com.rustedbrain.diploma.travelvisualizer.task.PlacesGetTask;
 
 import java.util.ArrayList;
@@ -48,11 +52,11 @@ import java.util.List;
 import java.util.Map;
 
 
-public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGetTaskListener {
+public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGetTaskListener, GetPlaceDescriptionTask.Listener, GoogleMap.OnMarkerClickListener {
 
     public static final String PLACE_DTO_PARAM = "place";
     private static final int DEFAULT_CAMERA_FOCUS_ZOOM = 12;
-    MapView mMapView;
+    private MapView mMapView;
     private OnFragmentInteractionListener mListener;
     private GoogleMap googleMap;
     private LatLng myLocation;
@@ -62,6 +66,10 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
     private PlacesGetTask placesGetTask;
     private Map<PlaceMapDTO, Marker> placeMapDTOMarkers = new HashMap<>();
     private PlaceAutocompleteFragment autocompleteFragment;
+
+    private LinearLayout placeDescriptionFragmentLayout;
+    private MapPlaceDescriptionFragment placeDescriptionFragment;
+    private GetPlaceDescriptionTask getPlaceDescriptionTask;
 
     public TripsMapFragment() {
         // Required empty public constructor
@@ -101,6 +109,7 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
             FragmentManager fragmentManager = getActivity().getFragmentManager();
             android.app.FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
             fragmentTransaction.remove(autocompleteFragment);
+            fragmentTransaction.remove(placeDescriptionFragment);
             fragmentTransaction.commit();
         }
     }
@@ -108,6 +117,8 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_trips_map, container, false);
+
+        placeDescriptionFragmentLayout = rootView.findViewById(R.id.trips_map_place_description);
 
         autocompleteFragment = new PlaceAutocompleteFragment();
         FragmentManager fragmentManager = getActivity().getFragmentManager();
@@ -163,6 +174,19 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
                         loadAndShowAreaShowplaces(bounds);
                     }
                 });
+                googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+                    @Override
+                    public void onMapClick(LatLng arg0) {
+                        if (placeDescriptionFragment != null) {
+                            FragmentManager fragmentManager = getActivity().getFragmentManager();
+                            android.app.FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+                            fragmentTransaction.remove(placeDescriptionFragment);
+                            fragmentTransaction.commit();
+                            placeDescriptionFragment = null;
+                        }
+                    }
+                });
+                googleMap.setOnMarkerClickListener(TripsMapFragment.this);
                 googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation, DEFAULT_CAMERA_FOCUS_ZOOM));
             }
         });
@@ -176,8 +200,7 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
         startPlacesGetTask(bounds);
     }
 
-
-    private void startPlacesGetTask(LatLngBounds bounds) {
+    private void startPlaceDescriptionGetTask(LatLngBounds bounds) {
         if (mListener != null) {
             if (placesGetTask != null) {
                 return;
@@ -191,36 +214,23 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
         }
     }
 
+    private void startPlacesGetTask(LatLngBounds bounds) {
+        if (placesGetTask != null) {
+            return;
+        }
+        // Show a progress spinner, and kick off a background task to
+        // perform the user login attempt.
+        showProgress(true);
+        placesGetTask = new PlacesGetTask(bounds, userDTO);
+        placesGetTask.addShowplacesGetTaskListener(this);
+        placesGetTask.execute((Void) null);
+    }
+
     private double getBoundsDistance(LatLngBounds bounds) {
         LatLng upRightPoint = bounds.northeast;
         LatLng bottomLeftPoint = bounds.southwest;
 
-        return distance(upRightPoint.latitude, bottomLeftPoint.latitude, upRightPoint.longitude, bottomLeftPoint.longitude);
-    }
-
-
-    private double distance(double lat1, double lon1, double lat2, double lon2) {
-        double theta = lon1 - lon2;
-        double dist = Math.sin(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(deg2rad(theta));
-        dist = Math.acos(dist);
-        dist = rad2deg(dist);
-        dist = dist * 60 * 1.1515;
-        dist = dist * 1.609344;
-        return (dist);
-    }
-
-    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
-    /*::  This function converts decimal degrees to radians             :*/
-    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
-    private double deg2rad(double deg) {
-        return (deg * Math.PI / 180.0);
-    }
-
-    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
-    /*::  This function converts radians to decimal degrees             :*/
-    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
-    private double rad2deg(double rad) {
-        return (rad * 180.0 / Math.PI);
+        return TravelAppUtils.distance(upRightPoint.latitude, bottomLeftPoint.latitude, upRightPoint.longitude, bottomLeftPoint.longitude);
     }
 
     @Override
@@ -289,6 +299,11 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
     }
 
     @Override
+    public void setGetPlaceDescriptionTask(GetPlaceDescriptionTask getPlaceDescriptionTask) {
+        this.getPlaceDescriptionTask = getPlaceDescriptionTask;
+    }
+
+    @Override
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
     public void showProgress(final boolean show) {
         int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
@@ -301,6 +316,20 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
                 progressView.setVisibility(show ? View.VISIBLE : View.GONE);
             }
         });
+    }
+
+    @Override
+    public void showGetPlaceDescriptionDTOTaskError() {
+
+    }
+
+    @Override
+    public void showPlaceDescriptionDTO(PlaceDescriptionDTO placeDescriptionDTO) {
+        placeDescriptionFragment = MapPlaceDescriptionFragment.newInstance(userDTO, placeDescriptionDTO);
+        FragmentManager fragmentManager = getActivity().getFragmentManager();
+        android.app.FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction.replace(R.id.trips_map_place_description, placeDescriptionFragment);
+        fragmentTransaction.commit();
     }
 
     @Override
@@ -367,9 +396,32 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
             Marker marker = googleMap.addMarker(new MarkerOptions()
                     .position(new LatLng(placeMapDTO.getLatitude(), placeMapDTO.getLongitude()))
                     .title(placeMapDTO.getName())
-                    .snippet("Population: 4,137,400").icon(markerIcon));
+                    .snippet("Rating: " + placeMapDTO.getRating()).icon(markerIcon));
             placeMapDTOMarkers.put(placeMapDTO, marker);
         }
+    }
+
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+
+        PlaceMapDTO placeMapDTO = null;
+
+        for (Map.Entry<PlaceMapDTO, Marker> entry : placeMapDTOMarkers.entrySet()) {
+            if (entry.getValue().equals(marker)) {
+                placeMapDTO = entry.getKey();
+                break;
+            }
+        }
+
+        if (placeMapDTO != null) {
+            if (getPlaceDescriptionTask == null) {
+                showProgress(true);
+                getPlaceDescriptionTask = new GetPlaceDescriptionTask(placeMapDTO.getLatitude(), placeMapDTO.getLongitude(), userDTO);
+                getPlaceDescriptionTask.addListener(this);
+                getPlaceDescriptionTask.execute((Void) null);
+            }
+        }
+        return false;
     }
 
     public interface OnFragmentInteractionListener {

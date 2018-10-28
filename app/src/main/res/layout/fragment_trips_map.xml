@@ -28,6 +28,13 @@
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/trips_map_place_description"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="visible"/>
     </RelativeLayout>
 
 </LinearLayout>

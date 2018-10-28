@@ -52,27 +52,19 @@ import static android.Manifest.permission.READ_CONTACTS;
 /**
  * A login screen that offers login via email/password.
  */
-public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<Cursor> {
+public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<Cursor>, RegistrationFormKeyListener.SuccessListener {
 
     public static final String USER_DTO_PARAM = "user";
-
-    /**
-     * Id to identity READ_CONTACTS permission request.
-     */
+    public static final int[] SECRET_KEY_COMBINATION = {19, 19, 21};
+    
     private static final int REQUEST_READ_CONTACTS = 0;
 
-    /**
-     * Keep track of the login task to ensure we can cancel it if requested.
-     */
-    private UserLoginTask mAuthTask = null;
+    private UserLoginTask userLoginTask;
 
-    // UI references.
     private AutoCompleteTextView mEmailView;
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
-
-    private int[] secretKeyCombination = {19, 19, 21};
     private LinkedList<Integer> secretQueue = new LinkedList<>();
     private Button signInButton;
 
@@ -82,41 +74,11 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         setContentView(R.layout.activity_login);
         // Set up the login form.
         mEmailView = findViewById(R.id.email);
-        mEmailView.setOnKeyListener(new View.OnKeyListener() {
-            @Override
-            public boolean onKey(View view, int i, KeyEvent keyEvent) {
-                Log.i(LoginActivity.class.getName(), "Login key event key code: " + String.valueOf(keyEvent.getKeyCode()));
-                if (secretQueue.size() < secretKeyCombination.length) {
-                    secretQueue.addLast(keyEvent.getKeyCode());
-                } else {
-                    secretQueue.removeFirst();
-                    secretQueue.addLast(keyEvent.getKeyCode());
-                }
-                boolean successCombination = true;
-                for (int idx = 0; idx < secretKeyCombination.length; idx++) {
-                    try {
-                        int inputtedKey = secretQueue.get(idx);
-                        if (inputtedKey != secretKeyCombination[idx]) {
-                            successCombination = false;
-                            break;
-                        }
-                    } catch (IndexOutOfBoundsException ex) {
-                        successCombination = false;
-                    }
-                }
-
-                if (successCombination) {
-                    mEmailView.setText("admin@gmail.com");
-                    mPasswordView.setText("admin");
-                    Toast.makeText(getApplicationContext(), "Secret combination inputted successfully!", Toast.LENGTH_SHORT).show();
-                    Log.i(LoginActivity.class.getName(), "Secret combination inputted successfully: " + String.valueOf(keyEvent.getKeyCode()));
-                }
-                return false;
-            }
-        });
+        mEmailView.setOnKeyListener(new RegistrationFormKeyListener(SECRET_KEY_COMBINATION, secretQueue, this));
         populateAutoComplete();
 
         mPasswordView = findViewById(R.id.password);
+        mPasswordView.setOnKeyListener(new RegistrationFormKeyListener(SECRET_KEY_COMBINATION, secretQueue, this));
         mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
@@ -243,7 +205,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
      * errors are presented and no actual login attempt is made.
      */
     private void attemptLogin() {
-        if (mAuthTask != null) {
+        if (userLoginTask != null) {
             return;
         }
 
@@ -284,8 +246,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-            mAuthTask = new UserLoginTask(email, password);
-            mAuthTask.execute((Void) null);
+            userLoginTask = new UserLoginTask(email, password);
+            userLoginTask.execute((Void) null);
         }
     }
 
@@ -371,6 +333,12 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         mEmailView.setAdapter(adapter);
     }
 
+    @Override
+    public void combinationSuccess() {
+        mEmailView.setText("admin@gmail.com");
+        mPasswordView.setText("admin");
+        Toast.makeText(getApplicationContext(), "Secret combination inputted successfully!", Toast.LENGTH_SHORT).show();
+    }
 
     private interface ProfileQuery {
         String[] PROJECTION = {
@@ -399,7 +367,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
                 AuthenticationRequest request = new AuthenticationRequest(email, password);
 
-                return restTemplate.postForObject(new URI(HttpUtils.getAbsoluteUrl(HttpUtils.AUTHENTICATE_URL)),
+                return restTemplate.postForObject(new URI(TravelAppUtils.getAbsoluteUrl(TravelAppUtils.AUTHENTICATE_URL)),
                         request, UserDTO.class);
             } catch (HttpClientErrorException e) {
                 Log.e(LoginActivity.class.getName(), e.getMessage(), e);
@@ -416,7 +384,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         @Override
         protected void onPostExecute(final UserDTO responseEntity) {
-            mAuthTask = null;
+            userLoginTask = null;
             showProgress(false);
 
             if (responseEntity == null) {
@@ -437,7 +405,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         @Override
         protected void onCancelled() {
-            mAuthTask = null;
+            userLoginTask = null;
             showProgress(false);
         }
     }
