@@ -72,21 +72,17 @@ public class PlacesGetTask extends AsyncTask<Void, Void, PlaceMapDTOList> {
     protected void onPostExecute(final PlaceMapDTOList placeMapDTOList) {
         for (PlacesGetTaskListener listener : placesGetTaskListeners) {
             listener.setPlacesGetTask(null);
-            listener.showProgress(false);
-        }
 
-        if (placeMapDTOList == null) {
-            for (PlacesGetTaskListener listener : placesGetTaskListeners) {
+            listener.showProgress(false);
+
+            if (placeMapDTOList == null) {
                 listener.showPlacesGetTaskError();
-            }
-        } else if (HttpStatus.OK.equals(placeMapDTOList.getStatus())) {
-            for (PlacesGetTaskListener listener : placesGetTaskListeners) {
+            } else if (HttpStatus.OK.equals(placeMapDTOList.getStatus())) {
                 listener.showPlaceMapDTOList(placeMapDTOList);
-            }
-        } else {
-            for (PlacesGetTaskListener listener : placesGetTaskListeners) {
+            } else {
                 listener.showPlacesGetTaskError();
             }
+
         }
     }
 
@@ -107,5 +103,6 @@ public class PlacesGetTask extends AsyncTask<Void, Void, PlaceMapDTOList> {
         void showPlacesGetTaskError();
 
         void showPlaceMapDTOList(PlaceMapDTOList placeMapDTOList);
+
     }
 }

@@ -8,7 +8,7 @@ import com.rustedbrain.diploma.travelvisualizer.MainActivity;
 import com.rustedbrain.diploma.travelvisualizer.TravelAppUtils;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.LatLngDTO;
-import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceDescriptionDTO;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceIgnoredDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.request.UserPlaceRequest;
 
 import org.codehaus.jackson.map.ObjectMapper;
@@ -23,28 +23,25 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-public class GetPlaceDescriptionTask extends AsyncTask<Void, Void, PlaceDescriptionDTO> {
+public class PlaceIgnoreAddRemoveTask extends AsyncTask<Void, Void, PlaceIgnoredDTO> {
 
-    private final List<Listener> taskListeners = new ArrayList<>();
+    private final List<PlaceIgnoreAddRemoveTask.Listener> taskListeners;
     private final UserDTO userDTO;
     private final double placeLatitude;
     private final double placeLongitude;
 
-    public GetPlaceDescriptionTask(double placeLatitude, double placeLongitude, UserDTO userDTO) {
+    public PlaceIgnoreAddRemoveTask(double placeLatitude, double placeLongitude, UserDTO userDTO, Listener listener) {
         this.placeLatitude = placeLatitude;
         this.placeLongitude = placeLongitude;
         this.userDTO = userDTO;
-    }
-
-    public void addListener(Listener listener) {
-        this.taskListeners.add(listener);
+        this.taskListeners = Collections.singletonList(listener);
     }
 
     @Override
-    protected PlaceDescriptionDTO doInBackground(Void... params) {
+    protected PlaceIgnoredDTO doInBackground(Void... params) {
         try {
             RestTemplate restTemplate = new RestTemplate();
             restTemplate.getMessageConverters().add(new MappingJacksonHttpMessageConverter());
@@ -54,12 +51,12 @@ public class GetPlaceDescriptionTask extends AsyncTask<Void, Void, PlaceDescript
 
             HttpEntity<UserPlaceRequest> entity = new HttpEntity<>(request, httpHeaders);
 
-            return restTemplate.postForObject(new URI(TravelAppUtils.getAbsoluteUrl(TravelAppUtils.PLACE_GET_MAP_DESCRIPTION_URL)),
-                    entity, PlaceDescriptionDTO.class);
+            return restTemplate.postForObject(new URI(TravelAppUtils.getAbsoluteUrl(TravelAppUtils.PLACE_IGNORE_URL)),
+                    entity, PlaceIgnoredDTO.class);
         } catch (HttpClientErrorException e) {
             Log.e(LoginActivity.class.getName(), e.getMessage(), e);
             try {
-                return new ObjectMapper().readValue(e.getResponseBodyAsString(), PlaceDescriptionDTO.class);
+                return new ObjectMapper().readValue(e.getResponseBodyAsString(), PlaceIgnoredDTO.class);
             } catch (IOException e1) {
                 return null;
             }
@@ -70,22 +67,22 @@ public class GetPlaceDescriptionTask extends AsyncTask<Void, Void, PlaceDescript
     }
 
     @Override
-    protected void onPostExecute(final PlaceDescriptionDTO placeDescriptionDTO) {
-        for (Listener listener : taskListeners) {
-            listener.setGetPlaceDescriptionTask(null);
-            listener.showProgress(false);
+    protected void onPostExecute(final PlaceIgnoredDTO placeIgnoreDTO) {
+        for (PlaceIgnoreAddRemoveTask.Listener listener : taskListeners) {
+            listener.setPlaceIgnoreAddRemoveTask(null);
+            listener.showPlaceIgnoreTaskProgress(false);
         }
 
-        if (placeDescriptionDTO == null) {
-            for (Listener listener : taskListeners) {
+        if (placeIgnoreDTO == null) {
+            for (PlaceIgnoreAddRemoveTask.Listener listener : taskListeners) {
                 listener.showGetPlaceDescriptionDTOTaskError();
             }
-        } else if (HttpStatus.OK.equals(placeDescriptionDTO.getStatus())) {
-            for (Listener listener : taskListeners) {
-                listener.showPlaceDescriptionDTO(placeDescriptionDTO);
+        } else if (HttpStatus.OK.equals(placeIgnoreDTO.getStatus())) {
+            for (PlaceIgnoreAddRemoveTask.Listener listener : taskListeners) {
+                listener.showPlaceIgnore(placeIgnoreDTO.isPlaceIgnored());
             }
         } else {
-            for (Listener listener : taskListeners) {
+            for (PlaceIgnoreAddRemoveTask.Listener listener : taskListeners) {
                 listener.showGetPlaceDescriptionDTOTaskError();
             }
         }
@@ -93,20 +90,20 @@ public class GetPlaceDescriptionTask extends AsyncTask<Void, Void, PlaceDescript
 
     @Override
     protected void onCancelled() {
-        for (Listener listener : taskListeners) {
-            listener.setGetPlaceDescriptionTask(null);
-            listener.showProgress(false);
+        for (PlaceIgnoreAddRemoveTask.Listener listener : taskListeners) {
+            listener.setPlaceIgnoreAddRemoveTask(null);
+            listener.showPlaceIgnoreTaskProgress(false);
         }
     }
 
     public interface Listener {
 
-        void setGetPlaceDescriptionTask(GetPlaceDescriptionTask getPlaceDescriptionTask);
+        void setPlaceIgnoreAddRemoveTask(PlaceIgnoreAddRemoveTask placeIgnoreAddRemoveTask);
 
-        void showProgress(boolean show);
+        void showPlaceIgnoreTaskProgress(boolean show);
 
         void showGetPlaceDescriptionDTOTaskError();
 
-        void showPlaceDescriptionDTO(PlaceDescriptionDTO placeDescriptionDTO);
+        void showPlaceIgnore(boolean placeIgnored);
     }
 }

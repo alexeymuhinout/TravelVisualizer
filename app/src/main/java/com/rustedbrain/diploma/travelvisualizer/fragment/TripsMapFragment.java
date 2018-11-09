@@ -16,6 +16,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -56,8 +57,8 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
 
     public static final String PLACE_DTO_PARAM = "place";
     private static final int DEFAULT_CAMERA_FOCUS_ZOOM = 12;
-    private MapView mMapView;
-    private OnFragmentInteractionListener mListener;
+    private MapView mapView;
+    private OnFragmentInteractionListener interactionListener;
     private GoogleMap googleMap;
     private LatLng myLocation;
     private UserDTO userDTO;
@@ -70,6 +71,7 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
     private LinearLayout placeDescriptionFragmentLayout;
     private MapPlaceDescriptionFragment placeDescriptionFragment;
     private GetPlaceDescriptionTask getPlaceDescriptionTask;
+    private Menu menu;
 
     public TripsMapFragment() {
         // Required empty public constructor
@@ -142,12 +144,12 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
 
         progressView = rootView.findViewById(R.id.trips_map_progress);
 
-        mMapView = rootView.findViewById(R.id.mapView);
-        mMapView.onCreate(savedInstanceState);
+        mapView = rootView.findViewById(R.id.mapView);
+        mapView.onCreate(savedInstanceState);
 
-        mMapView.onResume(); // needed to get the map to display immediately
+        mapView.onResume(); // needed to get the map to display immediately
 
-        mMapView.getMapAsync(new OnMapReadyCallback() {
+        mapView.getMapAsync(new OnMapReadyCallback() {
             @Override
             public void onMapReady(GoogleMap mMap) {
                 googleMap = mMap;
@@ -201,7 +203,7 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
     }
 
     private void startPlaceDescriptionGetTask(LatLngBounds bounds) {
-        if (mListener != null) {
+        if (interactionListener != null) {
             if (placesGetTask != null) {
                 return;
             }
@@ -255,32 +257,32 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
     @Override
     public void onResume() {
         super.onResume();
-        mMapView.onResume();
+        mapView.onResume();
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        mMapView.onPause();
+        mapView.onPause();
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mMapView.onDestroy();
+        mapView.onDestroy();
     }
 
     @Override
     public void onLowMemory() {
         super.onLowMemory();
-        mMapView.onLowMemory();
+        mapView.onLowMemory();
     }
 
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
         if (context instanceof OnFragmentInteractionListener) {
-            mListener = (OnFragmentInteractionListener) context;
+            interactionListener = (OnFragmentInteractionListener) context;
         } else {
             throw new RuntimeException(context.toString()
                     + " must implement OnFragmentInteractionListener");
@@ -290,7 +292,7 @@ public class TripsMapFragment extends Fragment implements PlacesGetTask.PlacesGe
     @Override
     public void onDetach() {
         super.onDetach();
-        mListener = null;
+        interactionListener = null;
     }
 
     @Override

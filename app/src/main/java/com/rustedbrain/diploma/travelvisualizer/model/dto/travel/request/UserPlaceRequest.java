@@ -2,14 +2,15 @@ package com.rustedbrain.diploma.travelvisualizer.model.dto.travel.request;
 
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.LatLngDTO;
 
-public class GetPlaceDescriptionDTORequest {
+public class UserPlaceRequest extends UserRequest{
 
     private LatLngDTO latLngDTO;
 
-    public GetPlaceDescriptionDTORequest() {
+    public UserPlaceRequest() {
     }
 
-    public GetPlaceDescriptionDTORequest(LatLngDTO latLngDTO) {
+    public UserPlaceRequest(String username, LatLngDTO latLngDTO) {
+        super(username);
         this.latLngDTO = latLngDTO;
     }
 
@@ -20,6 +21,4 @@ public class GetPlaceDescriptionDTORequest {
     public void setLatLngDTO(LatLngDTO latLngDTO) {
         this.latLngDTO = latLngDTO;
     }
-
-
 }

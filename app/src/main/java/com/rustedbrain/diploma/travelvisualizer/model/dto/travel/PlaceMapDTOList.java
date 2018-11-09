@@ -14,7 +14,7 @@ public class PlaceMapDTOList extends HttpDTO {
     }
 
     public PlaceMapDTOList(HttpStatus status, List<PlaceMapDTO> placeMapDTOList) {
-        super.setStatus(status);
+        super(status);
         this.placeMapDTOList = placeMapDTOList;
     }
 

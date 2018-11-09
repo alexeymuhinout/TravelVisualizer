@@ -8,6 +8,13 @@ public abstract class HttpDTO implements Serializable {
 
     private HttpStatus status;
 
+    public HttpDTO(HttpStatus status) {
+        this.status = status;
+    }
+
+    public HttpDTO() {
+    }
+
     public HttpStatus getStatus() {
         return status;
     }

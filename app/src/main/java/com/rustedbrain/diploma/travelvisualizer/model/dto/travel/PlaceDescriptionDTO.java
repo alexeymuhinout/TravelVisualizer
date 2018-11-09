@@ -12,6 +12,16 @@ public class PlaceDescriptionDTO extends HttpDTO {
     private float rating;
     private LatLngDTO latLngDTO;
     private List<byte[]> photoList;
+    private List<CommentDTO> commentList;
+    private boolean ignoredByUser;
+
+    public List<CommentDTO> getCommentList() {
+        return commentList;
+    }
+
+    public void setCommentList(List<CommentDTO> commentList) {
+        this.commentList = commentList;
+    }
 
     public LatLngDTO getLatLngDTO() {
         return latLngDTO;
@@ -35,6 +45,14 @@ public class PlaceDescriptionDTO extends HttpDTO {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public boolean isIgnoredByUser() {
+        return ignoredByUser;
+    }
+
+    public void setIgnoredByUser(boolean ignoredByUser) {
+        this.ignoredByUser = ignoredByUser;
     }
 
     public String getDescription() {

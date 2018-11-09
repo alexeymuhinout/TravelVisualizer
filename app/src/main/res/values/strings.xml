@@ -53,4 +53,5 @@
     <string name="fragment_place_photos_cancel_button">Cancel</string>
     <string name="button_load_photos">Load</string>
     <string name="popup_photos_menu_delete_action">Delete</string>
+    <string name="popup_place_add_to_trip_new_trip_action">Create Trip</string>
 </resources>

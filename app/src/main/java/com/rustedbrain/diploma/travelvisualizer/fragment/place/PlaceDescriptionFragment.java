@@ -19,7 +19,9 @@ import com.rustedbrain.diploma.travelvisualizer.RegistrationFormKeyListener;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceType;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 
 public class PlaceDescriptionFragment extends Fragment implements RegistrationFormKeyListener.SuccessListener {
@@ -295,7 +297,13 @@ public class PlaceDescriptionFragment extends Fragment implements RegistrationFo
         }
         int randomNumber = random.nextInt(1000);
         placeNameEditText.setText(placeType.name().toLowerCase() + "_" + randomNumber);
-        placeDescriptionEditText.setText(placeType.name().toLowerCase() + "_" + randomNumber + " description");
+
+        List<String> testStrings = new ArrayList<>();
+        for (int i = 0; i < random.nextInt(1000); i++) {
+            testStrings.add("test string");
+        }
+
+        placeDescriptionEditText.setText(String.join(", ", testStrings));
     }
 
     public interface OnFragmentInteractionListener {
