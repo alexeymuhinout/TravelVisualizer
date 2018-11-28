@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/popup_travel_place_show_action"
+        android:title="@string/popup_travel_show_menu_action" />
+    <item android:id="@+id/delete_action"
+        android:title="@string/popup_photos_menu_delete_action" />
+</menu>

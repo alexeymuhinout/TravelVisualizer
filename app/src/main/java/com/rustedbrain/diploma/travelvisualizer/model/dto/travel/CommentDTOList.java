@@ -1,17 +1,15 @@
 package com.rustedbrain.diploma.travelvisualizer.model.dto.travel;
 
-import com.rustedbrain.diploma.travelvisualizer.model.dto.HttpDTO;
-
-import org.springframework.http.HttpStatus;
-
 import java.util.List;
 
-public class CommentDTOList extends HttpDTO {
+public class CommentDTOList {
 
     private List<CommentDTO> commentDTOList;
 
-    public CommentDTOList(HttpStatus status, List<CommentDTO> commentDTOList) {
-        super(status);
+    public CommentDTOList() {
+    }
+
+    public CommentDTOList(List<CommentDTO> commentDTOList) {
         this.commentDTOList = commentDTOList;
     }
 

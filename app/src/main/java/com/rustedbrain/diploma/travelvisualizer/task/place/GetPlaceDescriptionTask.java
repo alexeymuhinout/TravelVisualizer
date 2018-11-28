@@ -1,4 +1,4 @@
-package com.rustedbrain.diploma.travelvisualizer.task;
+package com.rustedbrain.diploma.travelvisualizer.task.place;
 
 import android.os.AsyncTask;
 import android.util.Log;
@@ -6,83 +6,71 @@ import android.util.Log;
 import com.rustedbrain.diploma.travelvisualizer.LoginActivity;
 import com.rustedbrain.diploma.travelvisualizer.MainActivity;
 import com.rustedbrain.diploma.travelvisualizer.TravelAppUtils;
-import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.security.AuthUserDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.LatLngDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceDescriptionDTO;
-import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.request.UserPlaceRequest;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.request.NamingPlaceRequest;
 
-import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.json.MappingJacksonHttpMessageConverter;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-public class GetPlaceDescriptionTask extends AsyncTask<Void, Void, PlaceDescriptionDTO> {
+public class GetPlaceDescriptionTask extends AsyncTask<Void, Void, ResponseEntity<PlaceDescriptionDTO>> {
 
-    private final List<Listener> taskListeners = new ArrayList<>();
-    private final UserDTO userDTO;
+    private final List<Listener> taskListeners;
+    private final AuthUserDTO userDTO;
     private final double placeLatitude;
     private final double placeLongitude;
 
-    public GetPlaceDescriptionTask(double placeLatitude, double placeLongitude, UserDTO userDTO) {
+    public GetPlaceDescriptionTask(double placeLatitude, double placeLongitude, AuthUserDTO userDTO, Listener listener) {
         this.placeLatitude = placeLatitude;
         this.placeLongitude = placeLongitude;
         this.userDTO = userDTO;
-    }
-
-    public void addListener(Listener listener) {
-        this.taskListeners.add(listener);
+        this.taskListeners = Collections.singletonList(listener);
     }
 
     @Override
-    protected PlaceDescriptionDTO doInBackground(Void... params) {
+    protected ResponseEntity<PlaceDescriptionDTO> doInBackground(Void... params) {
         try {
             RestTemplate restTemplate = new RestTemplate();
             restTemplate.getMessageConverters().add(new MappingJacksonHttpMessageConverter());
-            UserPlaceRequest request = new UserPlaceRequest(userDTO.getUsername(), new LatLngDTO(placeLatitude, placeLongitude));
+            NamingPlaceRequest request = new NamingPlaceRequest(userDTO.getUsername(), new LatLngDTO(placeLatitude, placeLongitude));
             HttpHeaders httpHeaders = new HttpHeaders();
             httpHeaders.add(MainActivity.AUTH_TOKEN_HEADER_NAME, userDTO.getToken());
 
-            HttpEntity<UserPlaceRequest> entity = new HttpEntity<>(request, httpHeaders);
-
-            return restTemplate.postForObject(new URI(TravelAppUtils.getAbsoluteUrl(TravelAppUtils.PLACE_GET_MAP_DESCRIPTION_URL)),
-                    entity, PlaceDescriptionDTO.class);
-        } catch (HttpClientErrorException e) {
-            Log.e(LoginActivity.class.getName(), e.getMessage(), e);
-            try {
-                return new ObjectMapper().readValue(e.getResponseBodyAsString(), PlaceDescriptionDTO.class);
-            } catch (IOException e1) {
-                return null;
-            }
-        } catch (ResourceAccessException | URISyntaxException ex) {
+            return restTemplate.postForEntity(new URI(TravelAppUtils.getAbsoluteUrl(TravelAppUtils.PLACE_GET_MAP_DESCRIPTION_URL)),
+                    new HttpEntity<>(request, httpHeaders), PlaceDescriptionDTO.class);
+        } catch (ResourceAccessException | HttpClientErrorException | URISyntaxException ex) {
             Log.d(LoginActivity.class.getName(), ex.getMessage());
             return null;
         }
     }
 
+
     @Override
-    protected void onPostExecute(final PlaceDescriptionDTO placeDescriptionDTO) {
+    protected void onPostExecute(final ResponseEntity<PlaceDescriptionDTO> responseEntity) {
         for (Listener listener : taskListeners) {
             listener.setGetPlaceDescriptionTask(null);
             listener.showProgress(false);
         }
 
-        if (placeDescriptionDTO == null) {
+        if (responseEntity == null) {
             for (Listener listener : taskListeners) {
                 listener.showGetPlaceDescriptionDTOTaskError();
             }
-        } else if (HttpStatus.OK.equals(placeDescriptionDTO.getStatus())) {
+        } else if (HttpStatus.OK.equals(responseEntity.getStatusCode())) {
             for (Listener listener : taskListeners) {
-                listener.showPlaceDescriptionDTO(placeDescriptionDTO);
+                listener.showPlaceDescriptionDTO(responseEntity.getBody());
             }
         } else {
             for (Listener listener : taskListeners) {

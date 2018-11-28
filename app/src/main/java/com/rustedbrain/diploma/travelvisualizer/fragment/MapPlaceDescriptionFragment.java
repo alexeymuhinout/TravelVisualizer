@@ -3,15 +3,18 @@ package com.rustedbrain.diploma.travelvisualizer.fragment;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.app.AlertDialog;
 import android.app.Fragment;
-import android.app.FragmentManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.SpannableString;
+import android.text.style.ForegroundColorSpan;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -30,47 +33,49 @@ import android.widget.Toast;
 
 import com.rustedbrain.diploma.travelvisualizer.LoginActivity;
 import com.rustedbrain.diploma.travelvisualizer.R;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.security.AuthUserDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.CommentDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.LatLngDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceDescriptionDTO;
-import com.rustedbrain.diploma.travelvisualizer.task.CommentAddTask;
-import com.rustedbrain.diploma.travelvisualizer.task.GetUserTravelsTask;
-import com.rustedbrain.diploma.travelvisualizer.task.PlaceIgnoreAddRemoveTask;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceMapDTO;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.TravelDTO;
+import com.rustedbrain.diploma.travelvisualizer.task.comment.CommentAddTask;
+import com.rustedbrain.diploma.travelvisualizer.task.place.PlaceIgnoreAddRemoveTask;
+import com.rustedbrain.diploma.travelvisualizer.task.place.TravelPlaceModifyTask;
+import com.rustedbrain.diploma.travelvisualizer.task.travel.GetUserTravelsTask;
+import com.rustedbrain.diploma.travelvisualizer.task.travel.TravelAddTask;
 
 import java.util.ArrayList;
 import java.util.List;
 
 
-public class MapPlaceDescriptionFragment extends Fragment implements CommentAddTask.CommentAddTaskListener, PlaceIgnoreAddRemoveTask.Listener, GetUserTravelsTask.Listener {
+public class MapPlaceDescriptionFragment extends Fragment implements TravelPlaceModifyTask.Listener, TravelAddTask.Listener, CommentAddTask.CommentAddTaskListener, PlaceIgnoreAddRemoveTask.Listener, GetUserTravelsTask.Listener {
 
     private static final String PLACE_DESCRIPTION_DTO = "place_description_dto";
+    private static final String ADD = "+ ";
+    private static final String REMOVE = "- ";
     private List<Bitmap> photos;
     private Bitmap selectedPhoto;
     private OnFragmentInteractionListener listener;
-    private TextView placeDescriptionTextView;
-    private TextView placeNameTextView;
-    private RatingBar placeRatingBar;
-    private UserDTO userDTO;
+    private AuthUserDTO userDTO;
     private PlaceDescriptionDTO placeDescriptionDTO;
     private ImageView photoPreviewImageView;
     private LinearLayout photosLayout;
     private LinearLayout commentsLayout;
-
     private EditText placeDescriptionCommentEditText;
     private RatingBar placeDescriptionCommentRatingBar;
     private ProgressBar placeDescriptionCommentProgressBar;
-    private Button commentCancelButton;
     private Button commentSendButton;
     private CommentAddTask commentAddTask;
     private PlaceIgnoreAddRemoveTask placeIgnoreAddRemoveTask;
+    private TravelAddTask travelAddTask;
     private GetUserTravelsTask getUserTravelsTask;
+    private TravelPlaceModifyTask travelPlaceModifyTask;
     private List<CommentDTO> comments;
     private Button addToTripButton;
     private Button ignoreButton;
     private ProgressBar placeDescriptionPlaceOperationsProgressBar;
-    private ImageButton closeFragmentButton;
-    private Menu menu;
 
     public MapPlaceDescriptionFragment() {
 
@@ -89,7 +94,7 @@ public class MapPlaceDescriptionFragment extends Fragment implements CommentAddT
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            userDTO = (UserDTO) getArguments().getSerializable(LoginActivity.USER_DTO_PARAM);
+            userDTO = (AuthUserDTO) getArguments().getSerializable(LoginActivity.USER_DTO_PARAM);
             placeDescriptionDTO = (PlaceDescriptionDTO) getArguments().getSerializable(MapPlaceDescriptionFragment.PLACE_DESCRIPTION_DTO);
         }
     }
@@ -100,18 +105,18 @@ public class MapPlaceDescriptionFragment extends Fragment implements CommentAddT
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_map_place_description, container, false);
 
-        closeFragmentButton = view.findViewById(R.id.fragment_map_place_description_button_close);
+        ImageButton closeFragmentButton = view.findViewById(R.id.fragment_map_place_description_button_close);
         closeFragmentButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                closeFragmentButtonClicked();
+                FragmentUtil.closeFragmentButtonClicked(getActivity(), MapPlaceDescriptionFragment.this);
             }
         });
 
-        placeRatingBar = view.findViewById(R.id.fragment_map_place_description_rating_bar);
+        RatingBar placeRatingBar = view.findViewById(R.id.fragment_map_place_description_rating_bar);
         placeRatingBar.setRating(placeDescriptionDTO.getRating());
 
-        placeNameTextView = view.findViewById(R.id.fragment_map_place_description_name_text_view);
+        TextView placeNameTextView = view.findViewById(R.id.fragment_map_place_description_name_text_view);
         placeNameTextView.setText(placeDescriptionDTO.getName());
 
         photoPreviewImageView = view.findViewById(R.id.fragment_map_place_description_photo_preview);
@@ -122,7 +127,7 @@ public class MapPlaceDescriptionFragment extends Fragment implements CommentAddT
         addToTripButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                addToTripButtonClicked(v);
+                addToTripButtonClicked();
             }
         });
 
@@ -136,7 +141,7 @@ public class MapPlaceDescriptionFragment extends Fragment implements CommentAddT
         });
         setIgnoreButtonState(placeDescriptionDTO.isIgnoredByUser());
 
-        placeDescriptionTextView = view.findViewById(R.id.fragment_map_place_description_description_text_view);
+        TextView placeDescriptionTextView = view.findViewById(R.id.fragment_map_place_description_description_text_view);
         placeDescriptionTextView.setText(placeDescriptionDTO.getDescription());
 
         commentsLayout = view.findViewById(R.id.fragment_map_place_description_description_comments_layout);
@@ -146,7 +151,7 @@ public class MapPlaceDescriptionFragment extends Fragment implements CommentAddT
         placeDescriptionCommentRatingBar = view.findViewById(R.id.fragment_map_place_description_add_comment_rating_bar);
         placeDescriptionCommentEditText = view.findViewById(R.id.fragment_map_place_description_add_comment_edit_text);
 
-        commentCancelButton = view.findViewById(R.id.fragment_map_place_description_button_comment_cancel);
+        Button commentCancelButton = view.findViewById(R.id.fragment_map_place_description_button_comment_cancel);
         commentCancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -165,18 +170,7 @@ public class MapPlaceDescriptionFragment extends Fragment implements CommentAddT
         return view;
     }
 
-    private void closeFragmentButtonClicked() {
-        FragmentManager fragmentManager = getActivity().getFragmentManager();
-        android.app.FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.remove(this);
-        fragmentTransaction.commit();
-    }
-
     private void ignoreButtonClicked(LatLngDTO placeLatLng) {
-        float rating = placeDescriptionCommentRatingBar.getRating();
-        String comment = placeDescriptionCommentEditText.getText().toString();
-        LatLngDTO placeLocation = placeDescriptionDTO.getLatLngDTO();
-
         if (listener != null) {
             if (placeIgnoreAddRemoveTask != null) {
                 return;
@@ -193,7 +187,7 @@ public class MapPlaceDescriptionFragment extends Fragment implements CommentAddT
         }
     }
 
-    private void addToTripButtonClicked(View v) {
+    private void addToTripButtonClicked() {
         if (listener != null) {
             if (getUserTravelsTask != null) {
                 return;
@@ -233,10 +227,9 @@ public class MapPlaceDescriptionFragment extends Fragment implements CommentAddT
         ratingBar.setRating(comment.getRating());
 
         TextView commentTextView = new TextView(getContext());
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.setMargins(10, 10, 10, 10);
         lp.height = 64;
-        lp.width = 64;
         commentTextView.setLayoutParams(lp);
         commentTextView.setText(comment.getText());
 
@@ -406,7 +399,7 @@ public class MapPlaceDescriptionFragment extends Fragment implements CommentAddT
             listener = (OnFragmentInteractionListener) context;
         } else {
             throw new RuntimeException(context.toString()
-                    + " must implement OnFragmentInteractionListener");
+                    + " must implement TravelsFragmentRouteButtonListener");
         }
     }
 
@@ -433,12 +426,26 @@ public class MapPlaceDescriptionFragment extends Fragment implements CommentAddT
     }
 
     @Override
-    public void showTravels(List<String> travels) {
+    public void showTravels(List<TravelDTO> travels) {
         PopupMenu popup = new PopupMenu(getContext(), addToTripButton);
 
         Menu menu = popup.getMenu();
-        for (String travelName : travels){
-            menu.add(travelName);
+        for (TravelDTO travelDTO : travels) {
+            List<String> placesNames = new ArrayList<>();
+            if (travelDTO.getPlaces() != null) {
+                for (PlaceMapDTO placeMapDTO : travelDTO.getPlaces()) {
+                    placesNames.add(placeMapDTO.getName());
+                }
+            }
+            if (placesNames.contains(placeDescriptionDTO.getName())) {
+                SpannableString s = new SpannableString(REMOVE + travelDTO.getName());
+                s.setSpan(new ForegroundColorSpan(Color.RED), 0, s.length(), 0);
+                menu.add(s);
+            } else {
+                SpannableString s = new SpannableString(ADD + travelDTO.getName());
+                s.setSpan(new ForegroundColorSpan(Color.GREEN), 0, s.length(), 0);
+                menu.add(s);
+            }
         }
 
         //Inflating the Popup using xml file
@@ -447,12 +454,117 @@ public class MapPlaceDescriptionFragment extends Fragment implements CommentAddT
         //registering popup with OnMenuItemClickListener
         popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
             public boolean onMenuItemClick(MenuItem item) {
-                Toast.makeText(getContext(), "You Clicked : " + item.getTitle(), Toast.LENGTH_SHORT).show();
+                switch (item.getItemId()) {
+                    case R.id.new_trip_action: {
+                        showNewTripNameInputDialog();
+                    }
+                    break;
+                    default: {
+                        fireTravelAdded(item.getTitle().toString().replaceAll(REMOVE, "").replaceAll("\\" + ADD, ""));
+                    }
+                    break;
+                }
                 return true;
             }
         });
 
         popup.show();//showing popup menu
+    }
+
+    private void showNewTripNameInputDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("New Trip Name");
+// I'm using fragment here so I'm using getView() to provide ViewGroup
+// but you can provide here any other instance of ViewGroup from your Fragment / Activity
+        View viewInflated = LayoutInflater.from(getContext()).inflate(R.layout.dialog_naming, (ViewGroup) getView(), false);
+// Set up the input
+        final EditText input = viewInflated.findViewById(R.id.input);
+// Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+        builder.setView(viewInflated);
+
+// Set up the buttons
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                String travelName = input.getText().toString();
+                if (listener != null) {
+                    if (travelAddTask != null) {
+                        return;
+                    }
+                    // Reset errors.
+                    addToTripButton.setError(null);
+                    // Show a progress spinner, and kick off a background task to
+                    // perform the user login attempt.
+                    showPlaceIgnoreTaskProgress(true);
+                    travelAddTask = new TravelAddTask(travelName, userDTO, MapPlaceDescriptionFragment.this);
+                    travelAddTask.execute((Void) null);
+                }
+            }
+        });
+
+        builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        builder.show();
+    }
+
+    @Override
+    public void setTravelAddTask(TravelAddTask travelAddTask) {
+        this.travelAddTask = travelAddTask;
+    }
+
+    @Override
+    public void showTravelAddTaskProgress(boolean show) {
+        showPlaceIgnoreTaskProgress(show);
+    }
+
+    @Override
+    public void showTravelAddTaskError() {
+        addToTripButton.setError("Error");
+        addToTripButton.requestFocus();
+    }
+
+    @Override
+    public void fireTravelAdded(String travelName) {
+        LatLngDTO latLngDTO = placeDescriptionDTO.getLatLngDTO();
+        if (listener != null) {
+            if (travelPlaceModifyTask != null) {
+                return;
+            }
+            // Reset errors.
+            addToTripButton.setError(null);
+            // Show a progress spinner, and kick off a background task to
+            // perform the user login attempt.
+            showPlaceIgnoreTaskProgress(true);
+            travelPlaceModifyTask = new TravelPlaceModifyTask(travelName, latLngDTO, userDTO, MapPlaceDescriptionFragment.this);
+            travelPlaceModifyTask.execute((Void) null);
+        }
+    }
+
+    @Override
+    public void setTravelPlaceModifyTask(TravelPlaceModifyTask travelPlaceModifyTask) {
+        this.travelPlaceModifyTask = travelPlaceModifyTask;
+    }
+
+    @Override
+    public void showTravelPlaceAddTaskProgress(boolean show) {
+        showPlaceIgnoreTaskProgress(show);
+    }
+
+    @Override
+    public void showTravelPlaceAddTaskError() {
+        addToTripButton.setError("Error");
+        addToTripButton.requestFocus();
+    }
+
+    @Override
+    public void fireTravelPlaceAdded(PlaceDescriptionDTO placeDescriptionDTO) {
+        Toast.makeText(getContext(), "Travel successfully modified", Toast.LENGTH_LONG).show();
     }
 
     public interface OnFragmentInteractionListener {

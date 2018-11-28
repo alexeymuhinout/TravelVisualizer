@@ -4,42 +4,54 @@
     android:layout_height="match_parent"
     tools:context=".fragment.HomeFragment">
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="match_parent">
 
-        <Button
-            android:id="@+id/button_profile"
-            style="@style/Widget.AppCompat.Button.Colored"
-            android:layout_width="match_parent"
+        <ProgressBar
+            android:id="@+id/fragment_home_progress_bar"
+            style="?android:attr/progressBarStyleLarge"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:backgroundTint="@color/cardview_dark_background"
-            android:text="@string/button_profile" />
+            android:layout_centerInParent="true"
+            android:visibility="gone" />
 
-        <Button
-            android:id="@+id/button_saved_routes"
-            style="@style/Widget.AppCompat.Button.Colored"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:backgroundTint="@color/cardview_dark_background"
-            android:text="@string/button_saved_routes" />
+            android:layout_height="match_parent"
+            android:orientation="vertical">
 
-        <Button
-            android:id="@+id/button_archived_routes"
-            style="@style/Widget.AppCompat.Button.Colored"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:backgroundTint="@color/cardview_dark_background"
-            android:text="@string/button_archived_routes" />
+            <Button
+                android:id="@+id/button_profile"
+                style="@style/Widget.AppCompat.Button.Colored"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/cardview_dark_background"
+                android:text="@string/button_profile" />
 
-        <Button
-            android:id="@+id/button_add_place"
-            style="@style/Widget.AppCompat.Button.Colored"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:backgroundTint="@color/cardview_dark_background"
-            android:text="@string/button_add_place" />
+            <Button
+                android:id="@+id/button_saved_routes"
+                style="@style/Widget.AppCompat.Button.Colored"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/cardview_dark_background"
+                android:text="@string/button_saved_routes" />
 
-    </LinearLayout>
+            <Button
+                android:id="@+id/button_archived_routes"
+                style="@style/Widget.AppCompat.Button.Colored"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/cardview_dark_background"
+                android:text="@string/button_archived_routes" />
+
+            <Button
+                android:id="@+id/button_add_place"
+                style="@style/Widget.AppCompat.Button.Colored"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/cardview_dark_background"
+                android:text="@string/button_add_place" />
+        </LinearLayout>
+    </RelativeLayout>
 </FrameLayout>

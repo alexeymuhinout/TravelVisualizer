@@ -54,4 +54,7 @@
     <string name="button_load_photos">Load</string>
     <string name="popup_photos_menu_delete_action">Delete</string>
     <string name="popup_place_add_to_trip_new_trip_action">Create Trip</string>
+    <string name="popup_travel_show_menu_action">Show</string>
+    <string name="travel_share_scan_qr_tooltip">Scan QR code to retrieve travel on your device. Or enter usernames below manually</string>
+    <string name="button_shared_user_add">Add</string>
 </resources>

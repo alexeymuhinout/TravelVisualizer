@@ -5,6 +5,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -13,7 +14,6 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.v4.app.Fragment;
 import android.support.v4.content.PermissionChecker;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -31,22 +31,22 @@ import com.rustedbrain.diploma.travelvisualizer.LoginActivity;
 import com.rustedbrain.diploma.travelvisualizer.MainActivity;
 import com.rustedbrain.diploma.travelvisualizer.R;
 import com.rustedbrain.diploma.travelvisualizer.TravelAppUtils;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.security.AuthUserDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceMapDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceType;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.request.AddPlaceRequest;
 
-import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.json.MappingJacksonHttpMessageConverter;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -74,7 +74,7 @@ public class PlacePhotosFragment extends Fragment {
 
     private Button nextButton;
     private ProgressBar progressView;
-    private UserDTO userDTO;
+    private AuthUserDTO userDTO;
 
     private HashMap<ImageView, Bitmap> imageViewsPhotos = new HashMap<>();
 
@@ -100,7 +100,7 @@ public class PlacePhotosFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            userDTO = (UserDTO) getArguments().getSerializable(LoginActivity.USER_DTO_PARAM);
+            userDTO = (AuthUserDTO) getArguments().getSerializable(LoginActivity.USER_DTO_PARAM);
             placeType = PlaceType.valueOf(getArguments().getString(PlaceDescriptionFragment.PLACE_TYPE_ARG_PARAM));
             placeName = getArguments().getString(PlaceDescriptionFragment.NAME_ARG_PARAM);
             placeDescription = getArguments().getString(PlaceDescriptionFragment.DESCRIPTION_ARG_PARAM);
@@ -271,7 +271,7 @@ public class PlacePhotosFragment extends Fragment {
             interactionListener = (OnFragmentInteractionListener) context;
         } else {
             throw new RuntimeException(context.toString()
-                    + " must implement OnFragmentInteractionListener");
+                    + " must implement TravelsFragmentRouteButtonListener");
         }
     }
 
@@ -312,7 +312,7 @@ public class PlacePhotosFragment extends Fragment {
         void onPlacePhotosFragmentNextClicked(PlaceMapDTO placeMapDTO);
     }
 
-    private static class PlaceAddTask extends AsyncTask<Void, Void, PlaceMapDTO> {
+    private static class PlaceAddTask extends AsyncTask<Void, Void, ResponseEntity<PlaceMapDTO>> {
 
         private final PlaceType placeType;
         private final String name;
@@ -340,7 +340,7 @@ public class PlacePhotosFragment extends Fragment {
         }
 
         @Override
-        protected PlaceMapDTO doInBackground(Void... params) {
+        protected ResponseEntity<PlaceMapDTO> doInBackground(Void... params) {
             try {
                 List<byte[]> photoList = new ArrayList<>();
                 for (Bitmap photo : photos) {
@@ -355,30 +355,23 @@ public class PlacePhotosFragment extends Fragment {
 
                 HttpEntity<AddPlaceRequest> entity = new HttpEntity<>(request, httpHeaders);
 
-                return restTemplate.postForObject(new URI(TravelAppUtils.getAbsoluteUrl(TravelAppUtils.PLACE_ADD_URL)),
+                return restTemplate.postForEntity(new URI(TravelAppUtils.getAbsoluteUrl(TravelAppUtils.PLACE_ADD_URL)),
                         entity, PlaceMapDTO.class);
-            } catch (HttpClientErrorException e) {
-                Log.e(LoginActivity.class.getName(), e.getMessage(), e);
-                try {
-                    return new ObjectMapper().readValue(e.getResponseBodyAsString(), PlaceMapDTO.class);
-                } catch (IOException e1) {
-                    return null;
-                }
-            } catch (ResourceAccessException | URISyntaxException ex) {
+            } catch (ResourceAccessException | URISyntaxException | HttpClientErrorException ex) {
                 Log.d(LoginActivity.class.getName(), ex.getMessage());
                 return null;
             }
         }
 
         @Override
-        protected void onPostExecute(final PlaceMapDTO placeMapDTO) {
+        protected void onPostExecute(final ResponseEntity<PlaceMapDTO> responseEntity) {
             placePhotosFragment.setPlaceAddTask(null);
             placePhotosFragment.showProgress(false);
 
-            if (placeMapDTO == null) {
+            if (responseEntity == null) {
                 Toast.makeText(placePhotosFragment.getContext(), placePhotosFragment.getString(R.string.error_invalid_url), Toast.LENGTH_LONG).show();
-            } else if (HttpStatus.OK.equals(placeMapDTO.getStatus())) {
-                placePhotosFragment.getInteractionListener().onPlacePhotosFragmentNextClicked(placeMapDTO);
+            } else if (HttpStatus.OK.equals(responseEntity.getStatusCode())) {
+                placePhotosFragment.getInteractionListener().onPlacePhotosFragmentNextClicked(responseEntity.getBody());
             } else {
                 placePhotosFragment.getNextButton().setError("Error");
                 placePhotosFragment.getNextButton().requestFocus();

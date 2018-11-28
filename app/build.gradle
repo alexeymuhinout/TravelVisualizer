@@ -57,6 +57,8 @@ dependencies {
     implementation 'com.google.android.gms:play-services-maps:16.0.0'
     implementation 'com.google.android.gms:play-services-location:16.0.0'
     implementation 'com.google.android.gms:play-services-places:16.0.0'
+    implementation 'com.google.maps.android:android-maps-utils:0.5'
+    implementation 'com.github.jd-alexander:library:1.1.0'
     implementation 'com.android.support:recyclerview-v7:26.1.0'
     implementation 'com.github.arimorty:floatingsearchview:2.1.1'
     implementation('com.github.bumptech.glide:glide:4.8.0') {
@@ -69,4 +71,5 @@ dependencies {
     implementation 'org.springframework.android:spring-android-rest-template:1.0.1.RELEASE'
     implementation group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version: '1.9.13'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.7'
+    implementation 'androidmads.library.qrgenearator:QRGenearator:1.0.3'
 }

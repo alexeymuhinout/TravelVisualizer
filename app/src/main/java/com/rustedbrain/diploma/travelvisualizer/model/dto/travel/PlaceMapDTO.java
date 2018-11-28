@@ -1,12 +1,11 @@
 package com.rustedbrain.diploma.travelvisualizer.model.dto.travel;
 
-import com.rustedbrain.diploma.travelvisualizer.model.dto.HttpDTO;
+import com.google.android.gms.maps.model.LatLng;
 
-import org.springframework.http.HttpStatus;
-
+import java.io.Serializable;
 import java.util.Objects;
 
-public class PlaceMapDTO extends HttpDTO {
+public class PlaceMapDTO implements Serializable {
 
     private String name;
     private float rating;
@@ -17,13 +16,16 @@ public class PlaceMapDTO extends HttpDTO {
     public PlaceMapDTO() {
     }
 
-    public PlaceMapDTO(HttpStatus status, String name, float rating, double latitude, double longitude, PlaceType type) {
-        this.setStatus(status);
+    public PlaceMapDTO(String name, float rating, double latitude, double longitude, PlaceType type) {
         this.name = name;
         this.rating = rating;
         this.latitude = latitude;
         this.longitude = longitude;
         this.type = type;
+    }
+
+    public LatLng getPlaceLatLng() {
+        return new LatLng(latitude, longitude);
     }
 
     public PlaceType getType() {

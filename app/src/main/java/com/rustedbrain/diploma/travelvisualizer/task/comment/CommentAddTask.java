@@ -1,12 +1,11 @@
-package com.rustedbrain.diploma.travelvisualizer.task;
+package com.rustedbrain.diploma.travelvisualizer.task.comment;
 
 import android.os.AsyncTask;
 import android.util.Log;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rustedbrain.diploma.travelvisualizer.MainActivity;
 import com.rustedbrain.diploma.travelvisualizer.TravelAppUtils;
-import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.security.AuthUserDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.CommentDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.LatLngDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.request.CommentAddRequest;
@@ -14,26 +13,26 @@ import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.request.Comment
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.json.MappingJacksonHttpMessageConverter;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
 
-public class CommentAddTask extends AsyncTask<Void, Void, CommentDTO> {
+public class CommentAddTask extends AsyncTask<Void, Void, ResponseEntity<CommentDTO>> {
 
     private final LatLngDTO placeLatLng;
     private final float rating;
     private final String text;
-    private final UserDTO userDTO;
+    private final AuthUserDTO userDTO;
     private final List<CommentAddTaskListener> commentAddTaskListeners;
 
-    public CommentAddTask(LatLngDTO placeLatLng, float rating, String text, UserDTO userDTO, CommentAddTaskListener listener) {
+    public CommentAddTask(LatLngDTO placeLatLng, float rating, String text, AuthUserDTO userDTO, CommentAddTaskListener listener) {
         this.placeLatLng = placeLatLng;
         this.rating = rating;
         this.text = text;
@@ -42,7 +41,7 @@ public class CommentAddTask extends AsyncTask<Void, Void, CommentDTO> {
     }
 
     @Override
-    protected CommentDTO doInBackground(Void... params) {
+    protected ResponseEntity<CommentDTO> doInBackground(Void... params) {
         try {
             RestTemplate restTemplate = new RestTemplate();
             restTemplate.getMessageConverters().add(new MappingJacksonHttpMessageConverter());
@@ -52,35 +51,28 @@ public class CommentAddTask extends AsyncTask<Void, Void, CommentDTO> {
 
             HttpEntity<CommentAddRequest> entity = new HttpEntity<>(request, httpHeaders);
 
-            return restTemplate.postForObject(new URI(TravelAppUtils.getAbsoluteUrl(TravelAppUtils.COMMENT_ADD_URL)),
+            return restTemplate.postForEntity(new URI(TravelAppUtils.getAbsoluteUrl(TravelAppUtils.COMMENT_ADD_URL)),
                     entity, CommentDTO.class);
-        } catch (HttpClientErrorException e) {
-            Log.e(MainActivity.class.getName(), e.getMessage(), e);
-            try {
-                return new ObjectMapper().readValue(e.getResponseBodyAsString(), CommentDTO.class);
-            } catch (IOException e1) {
-                return null;
-            }
-        } catch (ResourceAccessException | URISyntaxException ex) {
+        } catch (ResourceAccessException | URISyntaxException | HttpClientErrorException ex) {
             Log.d(MainActivity.class.getName(), ex.getMessage());
             return null;
         }
     }
 
     @Override
-    protected void onPostExecute(final CommentDTO commentDTO) {
+    protected void onPostExecute(final ResponseEntity<CommentDTO> responseEntity) {
         for (CommentAddTaskListener listener : commentAddTaskListeners) {
             listener.setCommentAddTask(null);
             listener.showProgress(false);
         }
 
-        if (commentDTO == null) {
+        if (responseEntity == null) {
             for (CommentAddTaskListener listener : commentAddTaskListeners) {
                 listener.showCommentAddTaskError();
             }
-        } else if (HttpStatus.OK.equals(commentDTO.getStatus())) {
+        } else if (HttpStatus.OK.equals(responseEntity.getStatusCode())) {
             for (CommentAddTaskListener listener : commentAddTaskListeners) {
-                listener.addCreatedComment(commentDTO);
+                listener.addCreatedComment(responseEntity.getBody());
             }
         } else {
             for (CommentAddTaskListener listener : commentAddTaskListeners) {

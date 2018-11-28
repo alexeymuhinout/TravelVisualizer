@@ -10,7 +10,6 @@ import android.content.Loader;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
@@ -18,7 +17,6 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -30,19 +28,9 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.rustedbrain.diploma.travelvisualizer.model.dto.security.AuthenticationRequest;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
+import com.rustedbrain.diploma.travelvisualizer.task.authentication.UserLoginTask;
 
-import org.codehaus.jackson.map.ObjectMapper;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestTemplate;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -52,11 +40,11 @@ import static android.Manifest.permission.READ_CONTACTS;
 /**
  * A login screen that offers login via email/password.
  */
-public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<Cursor>, RegistrationFormKeyListener.SuccessListener {
+public class LoginActivity extends AppCompatActivity implements UserLoginTask.Listener, LoaderCallbacks<Cursor>, RegistrationFormKeyListener.SuccessListener {
 
     public static final String USER_DTO_PARAM = "user";
     public static final int[] SECRET_KEY_COMBINATION = {19, 19, 21};
-    
+
     private static final int REQUEST_READ_CONTACTS = 0;
 
     private UserLoginTask userLoginTask;
@@ -239,14 +227,10 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         }
 
         if (cancel) {
-            // There was an error; don't attempt login and focus the first
-            // form field with an error.
             focusView.requestFocus();
         } else {
-            // Show a progress spinner, and kick off a background task to
-            // perform the user login attempt.
             showProgress(true);
-            userLoginTask = new UserLoginTask(email, password);
+            userLoginTask = new UserLoginTask(email, password, this);
             userLoginTask.execute((Void) null);
         }
     }
@@ -340,6 +324,41 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         Toast.makeText(getApplicationContext(), "Secret combination inputted successfully!", Toast.LENGTH_SHORT).show();
     }
 
+    @Override
+    public void setUserLoginTask(UserLoginTask userLoginTask) {
+        this.userLoginTask = userLoginTask;
+    }
+
+    @Override
+    public void showUserLoginTaskProgress(boolean show) {
+        showProgress(show);
+    }
+
+    @Override
+    public void showUserLoginTaskWrongCredentialsError() {
+        mPasswordView.setError(getString(R.string.error_incorrect_password));
+        mPasswordView.requestFocus();
+    }
+
+    @Override
+    public void showUserLoginTaskNotExistentUserError() {
+        startActivity(new Intent(LoginActivity.this.getApplicationContext(), RegistrationActivity.class));
+    }
+
+    @Override
+    public void showUserLoginTaskUnknownError() {
+        Toast.makeText(getApplicationContext(), getString(R.string.error_invalid_url), Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void fireAuthSuccess(UserDTO user) {
+        Intent intent = new Intent(LoginActivity.this.getApplicationContext(), MainActivity.class);
+        Bundle bundle = new Bundle();
+        bundle.putSerializable(USER_DTO_PARAM, user);
+        intent.putExtras(bundle);
+        startActivity(intent);
+    }
+
     private interface ProfileQuery {
         String[] PROJECTION = {
                 ContactsContract.CommonDataKinds.Email.ADDRESS,
@@ -348,66 +367,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         int ADDRESS = 0;
         int IS_PRIMARY = 1;
-    }
-
-    private class UserLoginTask extends AsyncTask<Void, Void, UserDTO> {
-
-        private final String email;
-        private final String password;
-
-        UserLoginTask(String email, String password) {
-            this.email = email;
-            this.password = password;
-        }
-
-        @Override
-        protected UserDTO doInBackground(Void... params) {
-            try {
-                RestTemplate restTemplate = new RestTemplate();
-                restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
-                AuthenticationRequest request = new AuthenticationRequest(email, password);
-
-                return restTemplate.postForObject(new URI(TravelAppUtils.getAbsoluteUrl(TravelAppUtils.AUTHENTICATE_URL)),
-                        request, UserDTO.class);
-            } catch (HttpClientErrorException e) {
-                Log.e(LoginActivity.class.getName(), e.getMessage(), e);
-                try {
-                    return new ObjectMapper().readValue(e.getResponseBodyAsString(), UserDTO.class);
-                } catch (IOException e1) {
-                    return null;
-                }
-            } catch (ResourceAccessException | URISyntaxException ex) {
-                Log.d(LoginActivity.class.getName(), ex.getMessage());
-                return null;
-            }
-        }
-
-        @Override
-        protected void onPostExecute(final UserDTO responseEntity) {
-            userLoginTask = null;
-            showProgress(false);
-
-            if (responseEntity == null) {
-                Toast.makeText(getApplicationContext(), getString(R.string.error_invalid_url), Toast.LENGTH_LONG).show();
-            } else if (HttpStatus.OK.equals(responseEntity.getStatus())) {
-                Intent intent = new Intent(LoginActivity.this.getApplicationContext(), MainActivity.class);
-                Bundle bundle = new Bundle();
-                bundle.putSerializable(USER_DTO_PARAM, responseEntity);
-                intent.putExtras(bundle);
-                startActivity(intent);
-            } else if (HttpStatus.NOT_FOUND.equals(responseEntity.getStatus())) {
-                startActivity(new Intent(LoginActivity.this.getApplicationContext(), RegistrationActivity.class));
-            } else {
-                mPasswordView.setError(getString(R.string.error_incorrect_password));
-                mPasswordView.requestFocus();
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            userLoginTask = null;
-            showProgress(false);
-        }
     }
 }
 

@@ -1,10 +1,9 @@
 package com.rustedbrain.diploma.travelvisualizer.model.dto.travel;
 
-import com.rustedbrain.diploma.travelvisualizer.model.dto.HttpDTO;
-
+import java.io.Serializable;
 import java.util.List;
 
-public class PlaceDescriptionDTO extends HttpDTO {
+public class PlaceDescriptionDTO implements Serializable {
 
     private PlaceType type;
     private String name;

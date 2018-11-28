@@ -26,17 +26,16 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.RegistrationRequest;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.Role;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -301,7 +300,7 @@ public class RegistrationActivity extends AppCompatActivity implements LoaderMan
     }
 
 
-    private class UserRegistrationTask extends AsyncTask<Void, Void, UserDTO> {
+    private class UserRegistrationTask extends AsyncTask<Void, Void, ResponseEntity<UserDTO>> {
 
         private final String email;
         private final String password;
@@ -320,7 +319,7 @@ public class RegistrationActivity extends AppCompatActivity implements LoaderMan
         }
 
         @Override
-        protected UserDTO doInBackground(Void... params) {
+        protected ResponseEntity<UserDTO> doInBackground(Void... params) {
             try {
                 RestTemplate restTemplate = new RestTemplate();
                 restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
@@ -333,30 +332,23 @@ public class RegistrationActivity extends AppCompatActivity implements LoaderMan
                 registrationRequest.setLastName(lastName);
                 registrationRequest.setRole(role);
 
-                return restTemplate.postForObject(new URI(TravelAppUtils.getAbsoluteUrl(TravelAppUtils.REGISTER_URL)),
+                return restTemplate.postForEntity(new URI(TravelAppUtils.getAbsoluteUrl(TravelAppUtils.REGISTER_URL)),
                         registrationRequest, UserDTO.class);
-            } catch (HttpClientErrorException e) {
-                Log.e("MainActivity", e.getMessage(), e);
-                try {
-                    return new ObjectMapper().readValue(e.getResponseBodyAsString(), UserDTO.class);
-                } catch (IOException e1) {
-                    return null;
-                }
-            } catch (URISyntaxException e) {
+            } catch (URISyntaxException | HttpClientErrorException e) {
                 Log.e("MainActivity", e.getMessage(), e);
                 return null;
             }
         }
 
         @Override
-        protected void onPostExecute(final UserDTO responseEntity) {
+        protected void onPostExecute(final ResponseEntity<UserDTO> responseEntity) {
             mAuthTask = null;
             showProgress(false);
 
             if (responseEntity == null) {
                 Toast toast = Toast.makeText(getApplicationContext(), getString(R.string.error_invalid_url), Toast.LENGTH_LONG);
                 toast.show();
-            } else if (HttpStatus.OK.equals(responseEntity.getStatus())) {
+            } else if (HttpStatus.OK.equals(responseEntity.getStatusCode())) {
                 Intent loginIntent = new Intent(RegistrationActivity.this.getApplicationContext(), LoginActivity.class);
 
                 Bundle extras = new Bundle();
@@ -365,7 +357,7 @@ public class RegistrationActivity extends AppCompatActivity implements LoaderMan
 
                 loginIntent.putExtras(extras);
                 startActivity(loginIntent);
-            } else if (HttpStatus.CONFLICT.equals(responseEntity.getStatus())) {
+            } else if (HttpStatus.CONFLICT.equals(responseEntity.getStatusCode())) {
                 Toast toast = Toast.makeText(getApplicationContext(), getString(R.string.error_user_registered), Toast.LENGTH_LONG);
                 toast.show();
             } else {

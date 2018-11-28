@@ -1,35 +1,36 @@
 package com.rustedbrain.diploma.travelvisualizer.fragment;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.app.Fragment;
 import android.content.Context;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ProgressBar;
+import android.widget.Toast;
 
+import com.rustedbrain.diploma.travelvisualizer.LoginActivity;
 import com.rustedbrain.diploma.travelvisualizer.R;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.security.AuthUserDTO;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.TravelDTO;
+import com.rustedbrain.diploma.travelvisualizer.task.travel.GetUserTravelsTask;
 
-/**
- * A fragment with a Google +1 button.
- * Activities that contain this fragment must implement the
- * {@link HomeFragment.OnHomeFragmentButtonClickListener} interface
- * to handle interaction events.
- * Use the {@link HomeFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+import java.util.Iterator;
+import java.util.List;
+
 public class HomeFragment extends Fragment {
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
-    // The request code must be 0 or greater.
-    private static final int PLUS_ONE_REQUEST_CODE = 0;
-    // The URL to +1.  Must be a valid URL.
-    private final String PLUS_ONE_URL = "http://developer.android.com";
-    // TODO: Rename and change types of parameters
+
     private String mParam1;
     private String mParam2;
+
+    private GetUserTravelsTask getUserTravelsTask;
 
     private OnHomeFragmentButtonClickListener mListener;
 
@@ -37,74 +38,61 @@ public class HomeFragment extends Fragment {
     private Button savedRoutesButton;
     private Button archivedRoutesButton;
     private Button addPlaceButton;
+    private AuthUserDTO userDTO;
+    private ProgressBar progressBar;
 
     public HomeFragment() {
-        // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment HomeFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static HomeFragment newInstance(String param1, String param2) {
+    public static HomeFragment newInstance(AuthUserDTO userDTO) {
         HomeFragment fragment = new HomeFragment();
         Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
+        args.putSerializable(LoginActivity.USER_DTO_PARAM, userDTO);
         fragment.setArguments(args);
         return fragment;
-    }
-
-    public static HomeFragment newInstance() {
-        return new HomeFragment();
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+            this.userDTO = (AuthUserDTO) getArguments().getSerializable(LoginActivity.USER_DTO_PARAM);
         }
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_home, container, false);
+
+        progressBar = view.findViewById(R.id.fragment_home_progress_bar);
 
         profileButton = view.findViewById(R.id.button_profile);
         profileButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                onButtonPressed(OnHomeFragmentButtonClickListener.ClickedButton.PROFILE);
+                onProfileButtonClicked();
             }
         });
         savedRoutesButton = view.findViewById(R.id.button_saved_routes);
         savedRoutesButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                onButtonPressed(OnHomeFragmentButtonClickListener.ClickedButton.SAVED_ROUTES);
+                onSavedRoutesButtonClicked();
             }
         });
         archivedRoutesButton = view.findViewById(R.id.button_archived_routes);
         archivedRoutesButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                onButtonPressed(OnHomeFragmentButtonClickListener.ClickedButton.ARCHIVED_ROUTES);
+                onArchivedRoutesButtonClicked();
             }
         });
         addPlaceButton = view.findViewById(R.id.button_add_place);
         addPlaceButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                onButtonPressed(OnHomeFragmentButtonClickListener.ClickedButton.ADD_PLACE);
+                onAddPlaceButtonClicked();
             }
         });
 
@@ -114,13 +102,43 @@ public class HomeFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-
-        // Refresh the state of the +1 button each time the activity receives focus.=
     }
 
-    public void onButtonPressed(OnHomeFragmentButtonClickListener.ClickedButton clickedButton) {
+    public void onProfileButtonClicked() {
         if (mListener != null) {
-            mListener.onButtonClicked(clickedButton);
+            mListener.onProfileButtonClicked();
+        }
+    }
+
+    public void onSavedRoutesButtonClicked() {
+        if (mListener != null) {
+            if (getUserTravelsTask != null) {
+                return;
+            }
+
+            GetUserTravelsTaskListener listener = new GetUserTravelsTaskListener(true);
+            listener.showGetUserTravelsTaskProgress(true);
+            getUserTravelsTask = new GetUserTravelsTask(userDTO, listener);
+            getUserTravelsTask.execute((Void) null);
+        }
+    }
+
+    public void onArchivedRoutesButtonClicked() {
+        if (mListener != null) {
+            if (getUserTravelsTask != null) {
+                return;
+            }
+
+            GetUserTravelsTaskListener listener = new GetUserTravelsTaskListener(false);
+            listener.showGetUserTravelsTaskProgress(true);
+            getUserTravelsTask = new GetUserTravelsTask(userDTO, listener);
+            getUserTravelsTask.execute((Void) null);
+        }
+    }
+
+    public void onAddPlaceButtonClicked() {
+        if (mListener != null) {
+            mListener.onAddPlaceButtonClicked();
         }
     }
 
@@ -131,7 +149,7 @@ public class HomeFragment extends Fragment {
             mListener = (OnHomeFragmentButtonClickListener) context;
         } else {
             throw new RuntimeException(context.toString()
-                    + " must implement OnFragmentInteractionListener");
+                    + " must implement TravelsFragmentRouteButtonListener");
         }
     }
 
@@ -143,10 +161,78 @@ public class HomeFragment extends Fragment {
 
     public interface OnHomeFragmentButtonClickListener {
 
-        void onButtonClicked(ClickedButton clickedButton);
+        void onProfileButtonClicked();
 
-        enum ClickedButton {
-            PROFILE, SAVED_ROUTES, ADD_PLACE, ARCHIVED_ROUTES
+        void onSavedRoutesButtonClicked(List<TravelDTO> travels);
+
+        void onAddPlaceButtonClicked();
+
+        void onArchivedRoutesButtonClicked(List<TravelDTO> travels);
+    }
+
+    private class GetUserTravelsTaskListener implements GetUserTravelsTask.Listener {
+
+        private boolean activeRoutes;
+
+        public GetUserTravelsTaskListener(boolean activeRoutes) {
+            this.activeRoutes = activeRoutes;
+        }
+
+        @Override
+        public void setGetUserTravelsTask(GetUserTravelsTask getUserTravelsTask) {
+            HomeFragment.this.getUserTravelsTask = getUserTravelsTask;
+        }
+
+        @Override
+        public void showGetUserTravelsTaskProgress(final boolean show) {
+            int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
+
+            progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+            progressBar.animate().setDuration(shortAnimTime).alpha(
+                    show ? 1 : 0).setListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+                }
+            });
+        }
+
+        @Override
+        public void showGetUserTravelsTaskError() {
+            Toast.makeText(getContext(), "Error", Toast.LENGTH_SHORT).show();
+        }
+
+        @Override
+        public void showTravels(List<TravelDTO> travels) {
+            if (activeRoutes) {
+
+                Iterator<TravelDTO> travelDTOIterator = travels.iterator();
+                while (travelDTOIterator.hasNext()) {
+                    TravelDTO travelDTO = travelDTOIterator.next();
+                    if (travelDTO.isArchived()) {
+                        travelDTOIterator.remove();
+                    }
+                }
+                if (travels.isEmpty()) {
+                    Toast.makeText(getContext(), "Active routes list is empty", Toast.LENGTH_LONG).show();
+                } else {
+                    mListener.onSavedRoutesButtonClicked(travels);
+                }
+
+            } else {
+                Iterator<TravelDTO> travelDTOIterator = travels.iterator();
+                while (travelDTOIterator.hasNext()) {
+                    TravelDTO travelDTO = travelDTOIterator.next();
+                    if (!travelDTO.isArchived()) {
+                        travelDTOIterator.remove();
+                    }
+                }
+                if (travels.isEmpty()) {
+                    Toast.makeText(getContext(), "Archived routes list is empty", Toast.LENGTH_LONG).show();
+                } else {
+                    mListener.onArchivedRoutesButtonClicked(travels);
+                }
+            }
         }
     }
 }

@@ -1,10 +1,6 @@
 package com.rustedbrain.diploma.travelvisualizer.model.dto.travel;
 
-import com.rustedbrain.diploma.travelvisualizer.model.dto.HttpDTO;
-
-import org.springframework.http.HttpStatus;
-
-public class CommentDTO extends HttpDTO {
+public class CommentDTO {
 
     private String authorLogin;
     private float rating;
@@ -13,8 +9,7 @@ public class CommentDTO extends HttpDTO {
     public CommentDTO() {
     }
 
-    public CommentDTO(HttpStatus status, String authorLogin, float rating, String text) {
-        super(status);
+    public CommentDTO(String authorLogin, float rating, String text) {
         this.authorLogin = authorLogin;
         this.rating = rating;
         this.text = text;
