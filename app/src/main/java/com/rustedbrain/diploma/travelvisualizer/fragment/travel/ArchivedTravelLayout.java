@@ -10,8 +10,8 @@ public class ArchivedTravelLayout extends TravelLayout {
 
     private ImageButton restoreTravelButton;
 
-    public ArchivedTravelLayout(Context context, TravelDTO travelDTO, Listener listener) {
-        super(context, travelDTO, listener);
+    public ArchivedTravelLayout(Context context, TravelDTO travelDTO, boolean shared, Listener listener) {
+        super(context, travelDTO, shared, listener);
     }
 
     @Override

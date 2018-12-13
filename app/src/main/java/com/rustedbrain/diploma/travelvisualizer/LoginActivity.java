@@ -17,6 +17,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -115,7 +116,7 @@ public class LoginActivity extends AppCompatActivity implements UserLoginTask.Li
                 if (isDebug) {
                     mEmailView.setText("admin@gmail.com");
                     mPasswordView.setText("admin");
-                    signInButton.callOnClick();
+                    //signInButton.callOnClick();
                 }
             }
         }
@@ -336,18 +337,22 @@ public class LoginActivity extends AppCompatActivity implements UserLoginTask.Li
 
     @Override
     public void showUserLoginTaskWrongCredentialsError() {
-        mPasswordView.setError(getString(R.string.error_incorrect_password));
-        mPasswordView.requestFocus();
+        mEmailView.setError(getString(R.string.error_incorrect_password));
+        mEmailView.requestFocus();
     }
 
     @Override
     public void showUserLoginTaskNotExistentUserError() {
-        startActivity(new Intent(LoginActivity.this.getApplicationContext(), RegistrationActivity.class));
+        Toast toast = Toast.makeText(getApplicationContext(), "User with specified username or password not found", Toast.LENGTH_LONG);
+        toast.setGravity(Gravity.CENTER, 0, 0);
+        toast.show();
     }
 
     @Override
     public void showUserLoginTaskUnknownError() {
-        Toast.makeText(getApplicationContext(), getString(R.string.error_invalid_url), Toast.LENGTH_LONG).show();
+        Toast toast = Toast.makeText(getApplicationContext(), getString(R.string.error_unknown), Toast.LENGTH_LONG);
+        toast.setGravity(Gravity.CENTER, 0, 0);
+        toast.show();
     }
 
     @Override

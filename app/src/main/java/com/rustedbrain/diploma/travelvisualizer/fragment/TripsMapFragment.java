@@ -25,10 +25,13 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import com.directions.route.AbstractRouting;
@@ -76,7 +79,8 @@ import java.util.Map;
 public class TripsMapFragment extends Fragment implements TravelsFragment.TravelsFragmentRouteButtonListener, GetUserTravelsTask.Listener, PlacesGetTask.PlacesGetTaskListener, GetPlaceDescriptionTask.Listener, GoogleMap.OnMarkerClickListener {
 
     public static final String PLACE_DTO_PARAM = "place";
-    private static final int DEFAULT_CAMERA_FOCUS_ZOOM = 11;
+    private static final int DEFAULT_CAMERA_FOCUS_ZOOM = 13;
+    private static final String TRAVEL_DTO_LIST_PARAM = "travel_dto_list";
     private MapView mapView;
     private OnFragmentInteractionListener interactionListener;
     private GoogleMap googleMap;
@@ -107,15 +111,18 @@ public class TripsMapFragment extends Fragment implements TravelsFragment.Travel
     private CheckBox showplaceCheckbox;
     private CheckBox sleepCheckbox;
     private CheckBox foodCheckbox;
+    private Spinner travelsSpinner;
+    private TravelDTOList userTravels;
 
-    public static Fragment newInstance(UserDTO userDTO) {
-        return newInstance(userDTO, null);
+    public static Fragment newInstance(UserDTO userDTO, TravelDTOList travelDTOList) {
+        return newInstance(userDTO, travelDTOList, null);
     }
 
-    public static Fragment newInstance(UserDTO userDTO, PlaceMapDTO placeMapDTO) {
+    public static Fragment newInstance(UserDTO userDTO, TravelDTOList travelDTOList, PlaceMapDTO placeMapDTO) {
         TripsMapFragment fragment = new TripsMapFragment();
         Bundle args = new Bundle();
         args.putSerializable(LoginActivity.USER_DTO_PARAM, userDTO);
+        args.putSerializable(TripsMapFragment.TRAVEL_DTO_LIST_PARAM, travelDTOList);
         args.putSerializable(TripsMapFragment.PLACE_DTO_PARAM, placeMapDTO);
         fragment.setArguments(args);
         return fragment;
@@ -127,6 +134,7 @@ public class TripsMapFragment extends Fragment implements TravelsFragment.Travel
         setHasOptionsMenu(true);
         if (getArguments() != null) {
             userDTO = (AuthUserDTO) getArguments().getSerializable(LoginActivity.USER_DTO_PARAM);
+            userTravels = (TravelDTOList) getArguments().getSerializable(TripsMapFragment.TRAVEL_DTO_LIST_PARAM);
             focusPlaceMapDTO = (PlaceMapDTO) getArguments().getSerializable(TripsMapFragment.PLACE_DTO_PARAM);
         }
     }
@@ -214,6 +222,19 @@ public class TripsMapFragment extends Fragment implements TravelsFragment.Travel
         actionbar.setDisplayHomeAsUpEnabled(true);
         actionbar.setHomeAsUpIndicator(R.drawable.ic_menu_home);
 
+        travelsSpinner = rootView.findViewById(R.id.trips_map_trips_spinner);
+        travelsSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
         mapInnerFragmentLayout = rootView.findViewById(R.id.map_inner_fragment);
 
         drawer = rootView.findViewById(R.id.drawer);
@@ -293,6 +314,10 @@ public class TripsMapFragment extends Fragment implements TravelsFragment.Travel
             }
         });
 
+        List<TravelDTO> travels = userTravels.getTravelDTOList();
+        ArrayAdapter<TravelDTO> adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, travels);
+        travelsSpinner.setAdapter(adapter);
+
         return rootView;
     }
 
@@ -335,7 +360,7 @@ public class TripsMapFragment extends Fragment implements TravelsFragment.Travel
         closeMapInnerFragment();
     }
 
-    private void closeMapInnerFragment() {
+    public void closeMapInnerFragment() {
         FragmentUtil.closeFragmentButtonClicked(getActivity(), currentMapInnerFragment);
         this.currentMapInnerFragment = null;
         this.mapInnerFragmentLayout.setVisibility(View.GONE);
@@ -345,8 +370,11 @@ public class TripsMapFragment extends Fragment implements TravelsFragment.Travel
         if (focusPlaceMapDTO == null) {
             googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation, DEFAULT_CAMERA_FOCUS_ZOOM));
         } else {
-            googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(focusPlaceMapDTO.getPlaceLatLng(), DEFAULT_CAMERA_FOCUS_ZOOM));
-            focusPlaceMapDTO = null;
+            googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(focusPlaceMapDTO.getPlaceLatLng(), 15));
+
+            PlaceMapDTO placeMapDTOToOpen = focusPlaceMapDTO;
+            this.focusPlaceMapDTO = null;
+            loadAndShowPlaceDescription(placeMapDTOToOpen);
         }
     }
 
@@ -583,7 +611,7 @@ public class TripsMapFragment extends Fragment implements TravelsFragment.Travel
     }
 
     @Override
-    public void showTravels(List<TravelDTO> travels) {
+    public void onTravelsLoadSuccess(List<TravelDTO> travels) {
         showTravelsFragment(new TravelDTOList(travels));
     }
 
@@ -595,6 +623,11 @@ public class TripsMapFragment extends Fragment implements TravelsFragment.Travel
     @Override
     public void onTravelPlaceShowClicked(PlaceMapDTO placeMapDTO) {
         loadAndShowPlaceDescription(placeMapDTO);
+    }
+
+    @Override
+    public void onTravelsFragmentCloseButtonClicked() {
+        closeMapInnerFragment();
     }
 
     public interface OnFragmentInteractionListener {

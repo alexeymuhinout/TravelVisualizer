@@ -10,7 +10,6 @@ import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.SpannableString;
@@ -109,7 +108,7 @@ public class MapPlaceDescriptionFragment extends Fragment implements TravelPlace
         closeFragmentButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                FragmentUtil.closeFragmentButtonClicked(getActivity(), MapPlaceDescriptionFragment.this);
+                onCloseFragmentButtonClicked();
             }
         });
 
@@ -168,6 +167,12 @@ public class MapPlaceDescriptionFragment extends Fragment implements TravelPlace
         });
 
         return view;
+    }
+
+    private void onCloseFragmentButtonClicked() {
+        if (listener != null) {
+            listener.onMapPlaceDescriptionFragmentButtonCloseClicked();
+        }
     }
 
     private void ignoreButtonClicked(LatLngDTO placeLatLng) {
@@ -385,12 +390,6 @@ public class MapPlaceDescriptionFragment extends Fragment implements TravelPlace
         super.onResume();
     }
 
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
-        if (listener != null) {
-            listener.onFragmentInteraction(uri);
-        }
-    }
 
     @Override
     public void onAttach(Context context) {
@@ -426,7 +425,7 @@ public class MapPlaceDescriptionFragment extends Fragment implements TravelPlace
     }
 
     @Override
-    public void showTravels(List<TravelDTO> travels) {
+    public void onTravelsLoadSuccess(List<TravelDTO> travels) {
         PopupMenu popup = new PopupMenu(getContext(), addToTripButton);
 
         Menu menu = popup.getMenu();
@@ -541,7 +540,7 @@ public class MapPlaceDescriptionFragment extends Fragment implements TravelPlace
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showPlaceIgnoreTaskProgress(true);
-            travelPlaceModifyTask = new TravelPlaceModifyTask(travelName, latLngDTO, userDTO, MapPlaceDescriptionFragment.this);
+            travelPlaceModifyTask = new TravelPlaceModifyTask(userDTO, travelName, latLngDTO, MapPlaceDescriptionFragment.this);
             travelPlaceModifyTask.execute((Void) null);
         }
     }
@@ -563,11 +562,12 @@ public class MapPlaceDescriptionFragment extends Fragment implements TravelPlace
     }
 
     @Override
-    public void fireTravelPlaceAdded(PlaceDescriptionDTO placeDescriptionDTO) {
+    public void fireTravelPlaceModified(PlaceDescriptionDTO placeDescriptionDTO) {
         Toast.makeText(getContext(), "Travel successfully modified", Toast.LENGTH_LONG).show();
     }
 
     public interface OnFragmentInteractionListener {
-        void onFragmentInteraction(Uri uri);
+
+        void onMapPlaceDescriptionFragmentButtonCloseClicked();
     }
 }

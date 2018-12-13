@@ -12,8 +12,8 @@ public class ActiveTravelLayout extends TravelLayout {
     private ImageButton showRouteButton;
     private ImageButton shareButton;
 
-    public ActiveTravelLayout(Context context, TravelDTO travelDTO, Listener listener) {
-        super(context, travelDTO, listener);
+    public ActiveTravelLayout(Context context, TravelDTO travelDTO, boolean shared, Listener listener) {
+        super(context, travelDTO, shared, listener);
     }
 
     @Override
@@ -24,7 +24,7 @@ public class ActiveTravelLayout extends TravelLayout {
         showRouteButton = getRouteButton();
         layout.addView(showRouteButton);
 
-        trashButton = getTrashButton();
+        trashButton = getTrashButton(shared);
         layout.addView(trashButton);
         return layout;
     }

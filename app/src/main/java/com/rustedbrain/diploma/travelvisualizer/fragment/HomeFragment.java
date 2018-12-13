@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.app.Fragment;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -38,6 +39,8 @@ public class HomeFragment extends Fragment {
     private Button savedRoutesButton;
     private Button archivedRoutesButton;
     private Button addPlaceButton;
+    private Button exitButton;
+
     private AuthUserDTO userDTO;
     private ProgressBar progressBar;
 
@@ -96,7 +99,22 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        exitButton = view.findViewById(R.id.button_home_exit);
+        exitButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                onExitButtonClicked();
+            }
+        });
+
         return view;
+    }
+
+    private void onExitButtonClicked() {
+        Intent intent = new Intent(getContext(), LoginActivity.class);
+        Bundle bundle = new Bundle();
+        intent.putExtras(bundle);
+        startActivity(intent);
     }
 
     @Override
@@ -203,7 +221,7 @@ public class HomeFragment extends Fragment {
         }
 
         @Override
-        public void showTravels(List<TravelDTO> travels) {
+        public void onTravelsLoadSuccess(List<TravelDTO> travels) {
             if (activeRoutes) {
 
                 Iterator<TravelDTO> travelDTOIterator = travels.iterator();

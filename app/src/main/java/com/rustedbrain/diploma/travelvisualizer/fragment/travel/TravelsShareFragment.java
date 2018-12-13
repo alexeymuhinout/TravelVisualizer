@@ -3,12 +3,13 @@ package com.rustedbrain.diploma.travelvisualizer.fragment.travel;
 import android.app.Fragment;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.Point;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.Display;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,18 +17,28 @@ import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.zxing.WriterException;
+import com.rustedbrain.diploma.travelvisualizer.LoginActivity;
 import com.rustedbrain.diploma.travelvisualizer.R;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.security.AuthUserDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTOList;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.TravelDTO;
 import com.rustedbrain.diploma.travelvisualizer.task.authentication.GetUsersTask;
+import com.rustedbrain.diploma.travelvisualizer.task.travel.SetSharedUsersTask;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import androidmads.library.qrgenearator.QRGContents;
 import androidmads.library.qrgenearator.QRGEncoder;
@@ -35,16 +46,16 @@ import androidmads.library.qrgenearator.QRGSaver;
 
 import static android.content.Context.WINDOW_SERVICE;
 
-public class TravelsShareFragment extends Fragment implements GetUsersTask.Listener {
+public class TravelsShareFragment extends Fragment implements GetUsersTask.Listener, SetSharedUsersTask.Listener {
 
     private static final String TRAVEL_NAME_PARAM = "travel_name";
     private static final String TAG = "GenerateQRCode";
     private static final String USER_NAME_PARAM = "user_name";
     private static final String USERS_NAMES_PARAM = "users_names";
     String savePath = Environment.getExternalStorageDirectory().getPath() + "/QRCode/";
-    // TODO: Rename and change types of parameters
+
     private String travelName;
-    private OnFragmentInteractionListener mListener;
+    private TravelsShareFragmentListener mListener;
     private QRGEncoder qrgEncoder;
     private Bitmap bitmap;
     private ImageView qrImage;
@@ -53,24 +64,23 @@ public class TravelsShareFragment extends Fragment implements GetUsersTask.Liste
     private List<String> usernames;
     private GetUsersTask getUsersTask;
     private Button buttonSharedUserAdd;
+    private Button buttonCancel;
+    private Button buttonSubmit;
+    private SetSharedUsersTask setSharedUsersTask;
+
+
+    private LinearLayout sharedUsersLayout;
+    private Map<String, SharedUserLayout> sharedUserLayoutMap = new HashMap<>();
+    private AuthUserDTO user;
 
     public TravelsShareFragment() {
-        // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param qrEncodeValue Parameter 1.
-     * @return A new instance of fragment TravelsShareFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static TravelsShareFragment newInstance(String username, String qrEncodeValue) {
+    public static TravelsShareFragment newInstance(AuthUserDTO user, String travelName) {
         TravelsShareFragment fragment = new TravelsShareFragment();
         Bundle args = new Bundle();
-        args.putString(USER_NAME_PARAM, username);
-        args.putString(TRAVEL_NAME_PARAM, qrEncodeValue);
+        args.putSerializable(LoginActivity.USER_DTO_PARAM, user);
+        args.putString(TRAVEL_NAME_PARAM, travelName);
         fragment.setArguments(args);
         return fragment;
     }
@@ -80,7 +90,7 @@ public class TravelsShareFragment extends Fragment implements GetUsersTask.Liste
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
             travelName = getArguments().getString(TRAVEL_NAME_PARAM);
-            userName = getArguments().getString(USER_NAME_PARAM);
+            user = (AuthUserDTO) getArguments().getSerializable(LoginActivity.USER_DTO_PARAM);
             usernames = getArguments().getStringArrayList(USERS_NAMES_PARAM);
         }
     }
@@ -90,6 +100,22 @@ public class TravelsShareFragment extends Fragment implements GetUsersTask.Liste
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_travels_share, container, false);
+
+        buttonCancel = view.findViewById(R.id.travel_share_button_cancel);
+        buttonCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onButtonCancelClicked();
+            }
+        });
+
+        buttonSubmit = view.findViewById(R.id.travel_share_button_submit);
+        buttonSubmit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onButtonSubmitClicked();
+            }
+        });
 
         qrImage = view.findViewById(R.id.QR_Image);
         generateQR(userName, travelName);
@@ -102,14 +128,49 @@ public class TravelsShareFragment extends Fragment implements GetUsersTask.Liste
             }
         });
 
+        sharedUsersLayout = view.findViewById(R.id.travel_share_usernames_layout);
+
         usernamesAutocompleteTextField = view.findViewById(R.id.travel_share_username_autocomplete);
         retrieveUsernames();
 
         return view;
     }
 
+    private void onButtonSubmitClicked() {
+        Collection<String> usernames = sharedUserLayoutMap.keySet();
+
+        if (mListener != null && !usernames.isEmpty()) {
+            if (setSharedUsersTask != null) {
+                return;
+            }
+
+            showSetSharedUsersTaskProgress(true);
+            this.setSharedUsersTask = new SetSharedUsersTask(user, user.getUsername(), travelName, usernames, this);
+            this.setSharedUsersTask.execute((Void) null);
+        }
+    }
+
+    private void onButtonCancelClicked() {
+        if (mListener != null) {
+            mListener.onTravelShareFragmentCancelButtonClicked();
+        }
+    }
+
     private void onButtonSharedUserAddClicked() {
         String username = usernamesAutocompleteTextField.getText().toString();
+        if (user.getUsername().equals(username)) {
+            Toast toast = Toast.makeText(getContext(), "Unable to add yourself", Toast.LENGTH_SHORT);
+            toast.setGravity(Gravity.CENTER, 0, 0);
+            toast.show();
+        } else if (sharedUserLayoutMap.containsKey(username)) {
+            Toast toast = Toast.makeText(getContext(), "User already added", Toast.LENGTH_SHORT);
+            toast.setGravity(Gravity.CENTER, 0, 0);
+            toast.show();
+        } else {
+            SharedUserLayout layout = new SharedUserLayout(getContext(), username);
+            sharedUsersLayout.addView(layout);
+            sharedUserLayoutMap.put(username, layout);
+        }
     }
 
     private void save(String qrEncodeValue) {
@@ -162,18 +223,11 @@ public class TravelsShareFragment extends Fragment implements GetUsersTask.Liste
         super.onResume();
     }
 
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
-        }
-    }
-
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        if (context instanceof OnFragmentInteractionListener) {
-            mListener = (OnFragmentInteractionListener) context;
+        if (context instanceof TravelsShareFragmentListener) {
+            mListener = (TravelsShareFragmentListener) context;
         } else {
             throw new RuntimeException(context.toString()
                     + " must implement OnFragmentInteractionListener");
@@ -211,12 +265,77 @@ public class TravelsShareFragment extends Fragment implements GetUsersTask.Liste
                 this.usernames.add(userDTO.getUsername());
             }
         }
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this.getContext(),
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this.getContext(),
                 android.R.layout.simple_dropdown_item_1line, usernames);
         usernamesAutocompleteTextField.setAdapter(adapter);
     }
 
-    public interface OnFragmentInteractionListener {
-        void onFragmentInteraction(Uri uri);
+    @Override
+    public void setSetSharedUsersTask(SetSharedUsersTask setSharedUsersTask) {
+        this.setSharedUsersTask = setSharedUsersTask;
+    }
+
+    @Override
+    public void showSetSharedUsersTaskProgress(boolean show) {
+
+    }
+
+    @Override
+    public void showSetSharedUsersTaskError() {
+        Toast.makeText(getContext(), "Error occurred during setting shared users", Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void showTravel(TravelDTO travelDTO) {
+        if (mListener != null) {
+            mListener.onTravelShareFragmentUsersShared(travelDTO);
+        }
+    }
+
+    public interface TravelsShareFragmentListener {
+        void onTravelShareFragmentCancelButtonClicked();
+
+        void onTravelShareFragmentUsersShared(TravelDTO travelDTO);
+    }
+
+    private class SharedUserLayout extends LinearLayout {
+
+        private final String username;
+
+        public SharedUserLayout(Context context, final String username) {
+            super(context);
+            this.username = username;
+
+            TextView usernameTextView = new TextView(getContext());
+            LinearLayout.LayoutParams authorTextViewLayoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            authorTextViewLayoutParams.setMargins(5, 5, 5, 5);
+            usernameTextView.setLayoutParams(authorTextViewLayoutParams);
+            usernameTextView.setText(username);
+
+            final LinearLayout sharedUserControlsLayout = new LinearLayout(getContext());
+            sharedUserControlsLayout.setOrientation(LinearLayout.HORIZONTAL);
+            ImageButton deleteSharedUserButton = new ImageButton(getContext());
+            deleteSharedUserButton.setImageResource(R.drawable.ic_map_travel_trash);
+            deleteSharedUserButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    TravelsShareFragment.this.sharedUsersLayout.removeView(SharedUserLayout.this);
+                    TravelsShareFragment.this.sharedUserLayoutMap.remove(username);
+                }
+            });
+            sharedUserControlsLayout.addView(deleteSharedUserButton);
+
+            this.setOrientation(LinearLayout.HORIZONTAL);
+            this.setBackgroundColor(Color.parseColor("#ffffff"));
+            this.addView(usernameTextView);
+            this.addView(sharedUserControlsLayout);
+            LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
+            layoutParams.setMargins(5, 5, 5, 5);
+            this.setLayoutParams(layoutParams);
+        }
+
+        public String getUsername() {
+            return username;
+        }
     }
 }

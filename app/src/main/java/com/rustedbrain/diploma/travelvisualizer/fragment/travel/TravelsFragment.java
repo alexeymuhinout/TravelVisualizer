@@ -21,16 +21,22 @@ import com.rustedbrain.diploma.travelvisualizer.LoginActivity;
 import com.rustedbrain.diploma.travelvisualizer.R;
 import com.rustedbrain.diploma.travelvisualizer.fragment.FragmentUtil;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.AuthUserDTO;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.LatLngDTO;
+import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceDescriptionDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.PlaceMapDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.TravelDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.travel.TravelDTOList;
+import com.rustedbrain.diploma.travelvisualizer.task.place.TravelPlaceModifyTask;
 import com.rustedbrain.diploma.travelvisualizer.task.travel.ArchiveTravelTask;
+import com.rustedbrain.diploma.travelvisualizer.task.travel.RemoveTravelSharedUserTask;
+import com.rustedbrain.diploma.travelvisualizer.task.travel.SetSharedUsersTask;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-public class TravelsFragment extends Fragment implements ArchiveTravelTask.Listener, TravelLayout.Listener {
+public class TravelsFragment extends Fragment implements SetSharedUsersTask.Listener, TravelPlaceModifyTask.Listener, ArchiveTravelTask.Listener, RemoveTravelSharedUserTask.Listener, TravelLayout.Listener {
 
     public static final String TRAVEL_DTO_LIST_PARAM = "travel_dto_list";
     public static final String TRAVELS_ARCHIVED_LAYOUT_PARAM = "travels_archived_layout";
@@ -43,6 +49,7 @@ public class TravelsFragment extends Fragment implements ArchiveTravelTask.Liste
     private TravelDTOList travelDTOList;
 
     private ArchiveTravelTask archiveTravelTask;
+    private RemoveTravelSharedUserTask removeTravelSharedUserTask;
 
     private TravelsFragmentRouteButtonListener listener;
 
@@ -50,6 +57,8 @@ public class TravelsFragment extends Fragment implements ArchiveTravelTask.Liste
     private LinearLayout travelsLayout;
     private RelativeLayout mainLayout;
     private ProgressBar progressBar;
+    private TravelPlaceModifyTask travelPlaceModifyTask;
+    private SetSharedUsersTask travelLeaveTask;
 
     public TravelsFragment() {
     }
@@ -64,8 +73,8 @@ public class TravelsFragment extends Fragment implements ArchiveTravelTask.Liste
         return fragment;
     }
 
-    public void showTravelsShareFragment(String username, String travelName) {
-        this.currentMapInnerFragment = TravelsShareFragment.newInstance(username, travelName);
+    public void showTravelsShareFragment(String travelName) {
+        this.currentMapInnerFragment = TravelsShareFragment.newInstance(user, travelName);
         FragmentManager fragmentManager = getActivity().getFragmentManager();
         android.app.FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         fragmentTransaction.replace(R.id.trips_inner_fragment, currentMapInnerFragment);
@@ -86,7 +95,7 @@ public class TravelsFragment extends Fragment implements ArchiveTravelTask.Liste
     private void showTravels(List<TravelDTO> travelDTOList) {
         this.travelLayoutList = new ArrayList<>(travelDTOList.size());
         for (TravelDTO travelDTO : travelDTOList) {
-            TravelLayout layout = archivedTravelsLayout ? new ArchivedTravelLayout(getContext(), travelDTO, this) : new ActiveTravelLayout(getContext(), travelDTO, this);
+            TravelLayout layout = archivedTravelsLayout ? new ArchivedTravelLayout(getContext(), travelDTO, !user.getUsername().equals(travelDTO.getOwnerUsername()), this) : new ActiveTravelLayout(getContext(), travelDTO, !user.getUsername().equals(travelDTO.getOwnerUsername()), this);
             this.travelsLayout.addView(layout);
             this.travelLayoutList.add(layout);
         }
@@ -113,13 +122,52 @@ public class TravelsFragment extends Fragment implements ArchiveTravelTask.Liste
     }
 
     @Override
-    public void onTravelSharedUserClicked(String username) {
+    public void onTravelSharedUserShowClicked(String username) {
 
     }
 
     @Override
     public void onTravelShareButtonClicked(String travelName) {
-        showTravelsShareFragment(user.getUsername(), travelName);
+        showTravelsShareFragment(travelName);
+    }
+
+    @Override
+    public void onTravelSharedUserDeleteClicked(String travelName, String username) {
+        if (listener != null) {
+            if (removeTravelSharedUserTask != null) {
+                return;
+            }
+
+            showArchiveTravelTaskProgress(true);
+            this.removeTravelSharedUserTask = new RemoveTravelSharedUserTask(user, user.getUsername(), travelName, Collections.singletonList(username), this);
+            this.removeTravelSharedUserTask.execute((Void) null);
+        }
+    }
+
+    @Override
+    public void onTravelPlaceDeleteClicked(String travelName, PlaceMapDTO placeMapDTO) {
+        if (listener != null) {
+            if (travelPlaceModifyTask != null) {
+                return;
+            }
+
+            showArchiveTravelTaskProgress(true);
+            this.travelPlaceModifyTask = new TravelPlaceModifyTask(user, travelName, new LatLngDTO(placeMapDTO.getPlaceLatLng().latitude, placeMapDTO.getPlaceLatLng().longitude), this);
+            this.travelPlaceModifyTask.execute((Void) null);
+        }
+    }
+
+    @Override
+    public void onTravelLeaveButtonClicked(String ownerUsername, String travelName) {
+        if (listener != null) {
+            if (travelLeaveTask != null) {
+                return;
+            }
+
+            showArchiveTravelTaskProgress(true);
+            this.travelLeaveTask = new SetSharedUsersTask(user, ownerUsername, travelName, Collections.singletonList(user.getUsername()), this);
+            this.travelLeaveTask.execute((Void) null);
+        }
     }
 
     @Override
@@ -135,7 +183,7 @@ public class TravelsFragment extends Fragment implements ArchiveTravelTask.Liste
         closeFragmentButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                FragmentUtil.closeFragmentButtonClicked(getActivity(), TravelsFragment.this);
+                onCloseFragmentButtonClicked();
             }
         });
 
@@ -143,6 +191,12 @@ public class TravelsFragment extends Fragment implements ArchiveTravelTask.Liste
         showTravels(travelDTOList.getTravelDTOList());
 
         return view;
+    }
+
+    private void onCloseFragmentButtonClicked() {
+        if (listener != null) {
+            listener.onTravelsFragmentCloseButtonClicked();
+        }
     }
 
     @Override
@@ -165,6 +219,9 @@ public class TravelsFragment extends Fragment implements ArchiveTravelTask.Liste
             throw new RuntimeException(context.toString()
                     + " must implement TravelsFragmentRouteButtonListener");
         }
+
+//        this.currentMapInnerFragment = null;
+//        this.mapInnerFragmentLayout.setVisibility(View.GONE);
     }
 
     @Override
@@ -210,10 +267,99 @@ public class TravelsFragment extends Fragment implements ArchiveTravelTask.Liste
         }
     }
 
+    public void closeInnerFragment() {
+        FragmentUtil.closeFragmentButtonClicked(getActivity(), currentMapInnerFragment);
+        this.currentMapInnerFragment = null;
+        this.travelsInnerFragmentLayout.setVisibility(View.GONE);
+    }
+
+    public void updateTravel(TravelDTO travelDTO) {
+        for (TravelLayout travelLayout : travelLayoutList) {
+            if (travelLayout.travelDTO.getName().equals(travelDTO.getName())) {
+                travelLayout.updateTravelDTO(travelDTO);
+            }
+        }
+    }
+
+    @Override
+    public void setRemoveTravelSharedUserTask(RemoveTravelSharedUserTask removeTravelSharedUserTask) {
+        this.removeTravelSharedUserTask = removeTravelSharedUserTask;
+    }
+
+    @Override
+    public void showRemoveTravelSharedUserTaskProgress(boolean show) {
+        this.showArchiveTravelTaskProgress(show);
+    }
+
+    @Override
+    public void showRemoveTravelSharedUserTaskError() {
+        Toast.makeText(getContext(), "Error occured during removing shared user from travel", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void showRemovedSharedUserTravel(TravelDTO travelDTO) {
+        for (TravelLayout travelLayout : travelLayoutList) {
+            if (travelLayout.getTravelDTO().getName().equals(travelDTO.getName())) {
+                travelLayout.updateTravelDTO(travelDTO);
+            }
+        }
+    }
+
+    @Override
+    public void setTravelPlaceModifyTask(TravelPlaceModifyTask travelPlaceModifyTask) {
+        this.travelPlaceModifyTask = travelPlaceModifyTask;
+    }
+
+    @Override
+    public void showTravelPlaceAddTaskProgress(boolean show) {
+        showArchiveTravelTaskProgress(show);
+    }
+
+    @Override
+    public void showTravelPlaceAddTaskError() {
+        Toast.makeText(getContext(), "Error occurred during travel modifying", Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void fireTravelPlaceModified(PlaceDescriptionDTO placeDescriptionDTO) {
+        double placeLatitude = placeDescriptionDTO.getLatLngDTO().getLatitude();
+        double placeLongitude = placeDescriptionDTO.getLatLngDTO().getLongitude();
+        for (TravelLayout travelLayout : travelLayoutList) {
+            for (PlaceMapDTO placeMapDTO : travelLayout.getTravelDTO().getPlaces()) {
+                if (placeMapDTO.getLatitude() == placeLatitude && placeMapDTO.getLongitude() == placeLongitude) {
+                    travelLayout.removeTravelPlace(placeDescriptionDTO);
+                    return;
+                }
+            }
+        }
+    }
+
+    @Override
+    public void setSetSharedUsersTask(SetSharedUsersTask setSharedUsersTask) {
+
+    }
+
+    @Override
+    public void showSetSharedUsersTaskProgress(boolean show) {
+
+    }
+
+    @Override
+    public void showSetSharedUsersTaskError() {
+
+    }
+
+    @Override
+    public void showTravel(TravelDTO travelDTO) {
+
+    }
+
     public interface TravelsFragmentRouteButtonListener {
 
         void onTravelRouteButtonClicked(List<PlaceMapDTO> placeMapDTOList);
 
         void onTravelPlaceShowClicked(PlaceMapDTO placeMapDTO);
+
+        void onTravelsFragmentCloseButtonClicked();
     }
 }

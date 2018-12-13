@@ -67,7 +67,7 @@ public class GetUserTravelsTask extends AsyncTask<Void, Void, ResponseEntity<Tra
             }
         } else if (HttpStatus.OK.equals(responseEntity.getStatusCode())) {
             for (GetUserTravelsTask.Listener listener : taskListeners) {
-                listener.showTravels(responseEntity.getBody().getTravelDTOList());
+                listener.onTravelsLoadSuccess(responseEntity.getBody().getTravelDTOList());
             }
         } else {
             for (GetUserTravelsTask.Listener listener : taskListeners) {
@@ -92,6 +92,6 @@ public class GetUserTravelsTask extends AsyncTask<Void, Void, ResponseEntity<Tra
 
         void showGetUserTravelsTaskError();
 
-        void showTravels(List<TravelDTO> travels);
+        void onTravelsLoadSuccess(List<TravelDTO> travels);
     }
 }

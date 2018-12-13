@@ -52,6 +52,14 @@
                 android:layout_height="wrap_content"
                 android:backgroundTint="@color/cardview_dark_background"
                 android:text="@string/button_add_place" />
+
+            <Button
+                android:id="@+id/button_home_exit"
+                style="@style/Widget.AppCompat.Button.Colored"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/cardview_dark_background"
+                android:text="@string/button_home_exit" />
         </LinearLayout>
     </RelativeLayout>
 </FrameLayout>

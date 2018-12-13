@@ -55,6 +55,7 @@ public class UserLoginTask extends AsyncTask<Void, Void, ResponseEntity<AuthUser
             listener.showUserLoginTaskProgress(false);
             if (responseEntity == null) {
                 listener.showUserLoginTaskUnknownError();
+                //listener.showUserLoginTaskWrongCredentialsError();
             } else if (HttpStatus.OK.equals(responseEntity.getStatusCode())) {
                 listener.fireAuthSuccess(responseEntity.getBody());
             } else if (HttpStatus.NOT_FOUND.equals(responseEntity.getStatusCode())) {

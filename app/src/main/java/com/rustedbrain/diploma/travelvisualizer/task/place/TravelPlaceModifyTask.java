@@ -31,7 +31,7 @@ public class TravelPlaceModifyTask extends AsyncTask<Void, Void, ResponseEntity<
     private final LatLngDTO placeLatLng;
     private final List<Listener> travelPlaceAddListeners;
 
-    public TravelPlaceModifyTask(String travelName, LatLngDTO placeLatLng, AuthUserDTO userDTO, Listener listener) {
+    public TravelPlaceModifyTask(AuthUserDTO userDTO, String travelName, LatLngDTO placeLatLng, Listener listener) {
         this.travelName = travelName;
         this.placeLatLng = placeLatLng;
         this.userDTO = userDTO;
@@ -70,7 +70,7 @@ public class TravelPlaceModifyTask extends AsyncTask<Void, Void, ResponseEntity<
             }
         } else if (HttpStatus.OK.equals(responseEntity.getStatusCode())) {
             for (Listener listener : travelPlaceAddListeners) {
-                listener.fireTravelPlaceAdded(responseEntity.getBody());
+                listener.fireTravelPlaceModified(responseEntity.getBody());
             }
         } else {
             for (Listener listener : travelPlaceAddListeners) {
@@ -95,6 +95,6 @@ public class TravelPlaceModifyTask extends AsyncTask<Void, Void, ResponseEntity<
 
         void showTravelPlaceAddTaskError();
 
-        void fireTravelPlaceAdded(PlaceDescriptionDTO placeDescriptionDTO);
+        void fireTravelPlaceModified(PlaceDescriptionDTO placeDescriptionDTO);
     }
 }

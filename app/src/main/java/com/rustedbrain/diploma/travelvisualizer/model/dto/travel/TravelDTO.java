@@ -7,28 +7,21 @@ import java.util.Objects;
 
 public class TravelDTO implements Serializable {
 
+    private String ownerUsername;
     private String name;
     private boolean archived;
     private List<String> sharedToUsersUsernames = new ArrayList<>();
     private List<PlaceMapDTO> places = new ArrayList<>();
 
-    public TravelDTO(String name) {
-        this(name, false);
-    }
-
-    public TravelDTO(String name, boolean archived) {
-        this(name, archived, null, null);
-    }
-
-
-    public TravelDTO(String name, boolean archived, List<String> sharedToUsersUsernames, List<PlaceMapDTO> places) {
-        this.name = name;
-        this.archived = archived;
-        this.sharedToUsersUsernames = sharedToUsersUsernames;
-        this.places = places;
-    }
-
     public TravelDTO() {
+    }
+
+    public String getOwnerUsername() {
+        return ownerUsername;
+    }
+
+    public void setOwnerUsername(String ownerUsername) {
+        this.ownerUsername = ownerUsername;
     }
 
     public List<String> getSharedToUsersUsernames() {
@@ -68,22 +61,18 @@ public class TravelDTO implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         TravelDTO travelDTO = (TravelDTO) o;
-        return archived == travelDTO.archived &&
-                Objects.equals(name, travelDTO.name) &&
-                Objects.equals(places, travelDTO.places);
+        return Objects.equals(ownerUsername, travelDTO.ownerUsername) &&
+                Objects.equals(name, travelDTO.name);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, archived, places);
+        return Objects.hash(ownerUsername, name);
     }
 
     @Override
     public String toString() {
-        return "TravelDTO{" +
-                "name='" + name + '\'' +
-                ", archived=" + archived +
-                ", places=" + places +
-                '}';
+        return this.name;
     }
 }
+

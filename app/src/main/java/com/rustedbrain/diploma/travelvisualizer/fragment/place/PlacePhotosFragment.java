@@ -369,7 +369,7 @@ public class PlacePhotosFragment extends Fragment {
             placePhotosFragment.showProgress(false);
 
             if (responseEntity == null) {
-                Toast.makeText(placePhotosFragment.getContext(), placePhotosFragment.getString(R.string.error_invalid_url), Toast.LENGTH_LONG).show();
+                Toast.makeText(placePhotosFragment.getContext(), placePhotosFragment.getString(R.string.error_unknown), Toast.LENGTH_LONG).show();
             } else if (HttpStatus.OK.equals(responseEntity.getStatusCode())) {
                 placePhotosFragment.getInteractionListener().onPlacePhotosFragmentNextClicked(responseEntity.getBody());
             } else {

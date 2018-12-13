@@ -15,13 +15,13 @@
     <string name="action_sign_in_short">Sign in</string>
     <string name="error_invalid_email">This email address is invalid</string>
     <string name="error_invalid_password">This password is too short</string>
-    <string name="error_incorrect_password">This password is incorrect</string>
+    <string name="error_incorrect_password">User with specified login not found</string>
     <string name="error_field_required">This field is required</string>
     <string name="permission_rationale">"Contacts permissions are needed for providing email
         completions."
     </string>
     <string name="title_activity_maps">Map</string>
-    <string name="error_invalid_url">Invalid server url</string>
+    <string name="error_unknown">Unknown error occurred</string>
     <string name="title_activity_registration">Registration</string>
     <string name="error_empty_username">Username cannot be empty</string>
     <string name="error_user_registered">User with this login or email already registered</string>
@@ -57,4 +57,5 @@
     <string name="popup_travel_show_menu_action">Show</string>
     <string name="travel_share_scan_qr_tooltip">Scan QR code to retrieve travel on your device. Or enter usernames below manually</string>
     <string name="button_shared_user_add">Add</string>
+    <string name="button_home_exit">Exit</string>
 </resources>

@@ -26,9 +26,9 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.rustedbrain.diploma.travelvisualizer.model.dto.security.AuthUserDTO;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.RegistrationRequest;
 import com.rustedbrain.diploma.travelvisualizer.model.dto.security.Role;
-import com.rustedbrain.diploma.travelvisualizer.model.dto.security.UserDTO;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -300,7 +300,7 @@ public class RegistrationActivity extends AppCompatActivity implements LoaderMan
     }
 
 
-    private class UserRegistrationTask extends AsyncTask<Void, Void, ResponseEntity<UserDTO>> {
+    private class UserRegistrationTask extends AsyncTask<Void, Void, ResponseEntity<AuthUserDTO>> {
 
         private final String email;
         private final String password;
@@ -319,7 +319,7 @@ public class RegistrationActivity extends AppCompatActivity implements LoaderMan
         }
 
         @Override
-        protected ResponseEntity<UserDTO> doInBackground(Void... params) {
+        protected ResponseEntity<AuthUserDTO> doInBackground(Void... params) {
             try {
                 RestTemplate restTemplate = new RestTemplate();
                 restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
@@ -333,7 +333,7 @@ public class RegistrationActivity extends AppCompatActivity implements LoaderMan
                 registrationRequest.setRole(role);
 
                 return restTemplate.postForEntity(new URI(TravelAppUtils.getAbsoluteUrl(TravelAppUtils.REGISTER_URL)),
-                        registrationRequest, UserDTO.class);
+                        registrationRequest, AuthUserDTO.class);
             } catch (URISyntaxException | HttpClientErrorException e) {
                 Log.e("MainActivity", e.getMessage(), e);
                 return null;
@@ -341,12 +341,12 @@ public class RegistrationActivity extends AppCompatActivity implements LoaderMan
         }
 
         @Override
-        protected void onPostExecute(final ResponseEntity<UserDTO> responseEntity) {
+        protected void onPostExecute(final ResponseEntity<AuthUserDTO> responseEntity) {
             mAuthTask = null;
             showProgress(false);
 
             if (responseEntity == null) {
-                Toast toast = Toast.makeText(getApplicationContext(), getString(R.string.error_invalid_url), Toast.LENGTH_LONG);
+                Toast toast = Toast.makeText(getApplicationContext(), getString(R.string.error_unknown), Toast.LENGTH_LONG);
                 toast.show();
             } else if (HttpStatus.OK.equals(responseEntity.getStatusCode())) {
                 Intent loginIntent = new Intent(RegistrationActivity.this.getApplicationContext(), LoginActivity.class);

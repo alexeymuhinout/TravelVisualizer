@@ -5,6 +5,9 @@ public class TravelAppUtils {
 
     private static final String TRAVEL_URL = "/travel";
     public static final String TRAVEL_GET_BY_USERNAME_URL = TRAVEL_URL + "/travel/username/get";
+    public static final String TRAVEL_SHARED_SET_URL = TRAVEL_URL + "/travel/shared/set";
+    public static final String TRAVEL_SEND_USER_COORDINATES_URL = TRAVEL_URL + "/travel/user/coordinates/set";
+    public static final String TRAVEL_SHARED_USER_ADD_REMOVE_URL = TRAVEL_URL + "/travel/shared/modify";
     public static final String TRAVEL_ADD_URL = TRAVEL_URL + "/travel/add";
     public static final String TRAVEL_USERNAMES_URL = TRAVEL_URL + "/users/get";
     public static final String TRAVEL_ARCHIVE_URL = TRAVEL_URL + "/travel/archive";
@@ -14,7 +17,7 @@ public class TravelAppUtils {
     public static final String PLACE_GET_MAP_DESCRIPTION_URL = TRAVEL_URL + "/place/description/get";
     public static final String PLACE_GET_BOUNDS_URL = TRAVEL_URL + "/place/get/bounds";
     public static final String COMMENT_ADD_URL = TRAVEL_URL + "/comment/add";
-    private static final String BASE_URL = "http://10.0.3.2:8080";
+    private static final String BASE_URL = "http://10.0.2.2:8080";
     private static final String LOGIN_URL = "/login";
     public static final String AUTHENTICATE_URL = LOGIN_URL + "/authenticate";
     public static final String REGISTER_URL = LOGIN_URL + "/register";
